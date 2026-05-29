@@ -1,0 +1,11 @@
+╭─── Claude Code v2.1.153 ─────────────────────────────────────────────────────╮
+│                                         │ Tips for getting started           │
+│          Welcome back Yogendra!         │ Run /init to create a CLAUDE.md f… │
+│                                         │ ────────────────────────────────── │
+│                 ▐▛███▜▌                 │ What's new                         │
+│                ▝▜█████▛▘                │ Fixed an issue when using Opus 4.… │
+│                  ▘▘ ▝▝                  │ Opus 4.8 is here! Now defaults to… │
+│                                         │ Introducing dynamic workflows: as… │
+│   Sonnet 4.6 · Claude Team · Techdome   │ /release-notes for more            │
+│         ~/Documents/hyperswitch         │                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯

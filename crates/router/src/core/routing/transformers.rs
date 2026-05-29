@@ -105,6 +105,10 @@ impl ForeignFrom<RoutingAlgorithmKind> for storage_enums::RoutingAlgorithmKind {
             RoutingAlgorithmKind::Advanced => Self::Advanced,
             RoutingAlgorithmKind::Dynamic => Self::Dynamic,
             RoutingAlgorithmKind::ThreeDsDecisionRule => Self::ThreeDsDecisionRule,
+            // BinBased stores its config as JSON in algorithm_data — same DB representation
+            // as Advanced. A separate enum value would require a DB migration that is
+            // out of scope for this assignment; see DECISIONS.md.
+            RoutingAlgorithmKind::BinBased => Self::Advanced,
         }
     }
 }

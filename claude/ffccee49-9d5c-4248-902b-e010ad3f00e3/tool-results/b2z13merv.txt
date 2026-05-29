@@ -1,0 +1,812 @@
+==> Tearing down any previous run (volumes included for fresh DB)...
+docker compose -f docker-compose-demo.yml down --remove-orphans --volumes
+ Container hyperswitch-superposition-1 Stopping 
+ Container hyperswitch-migration_runner-1 Stopping 
+ Container hyperswitch-migration_runner-1 Stopped 
+ Container hyperswitch-migration_runner-1 Removing 
+ Container hyperswitch-migration_runner-1 Removed 
+ Container hyperswitch-pg-1 Stopping 
+ Container hyperswitch-pg-1 Stopped 
+ Container hyperswitch-pg-1 Removing 
+ Container hyperswitch-pg-1 Removed 
+ Container hyperswitch-superposition-1 Stopped 
+ Container hyperswitch-superposition-1 Removing 
+ Container hyperswitch-superposition-1 Removed 
+ Container hyperswitch-redis-standalone-1 Stopping 
+ Container hyperswitch-redis-standalone-1 Stopped 
+ Container hyperswitch-redis-standalone-1 Removing 
+ Container hyperswitch-redis-standalone-1 Removed 
+ Network hyperswitch_router_net Removing 
+ Volume hyperswitch_pg_data Removing 
+ Volume hyperswitch_pg_data Removed 
+ Network hyperswitch_router_net Removed 
+==> Pulling images (prevents OOM from concurrent pulls during startup)...
+docker compose -f docker-compose-demo.yml pull --quiet pg redis-standalone superposition migration_runner 2>/dev/null || true
+==> Starting Postgres + Redis...
+docker compose -f docker-compose-demo.yml up -d pg redis-standalone
+ Network hyperswitch_router_net Creating 
+ Network hyperswitch_router_net Created 
+ Volume hyperswitch_pg_data Creating 
+ Volume hyperswitch_pg_data Created 
+ Container hyperswitch-redis-standalone-1 Creating 
+ Container hyperswitch-pg-1 Creating 
+ Container hyperswitch-redis-standalone-1 Created 
+ Container hyperswitch-pg-1 Created 
+ Container hyperswitch-pg-1 Starting 
+ Container hyperswitch-redis-standalone-1 Starting 
+ Container hyperswitch-redis-standalone-1 Started 
+ Container hyperswitch-pg-1 Started 
+==> Waiting for Postgres + Redis to be healthy...
+==> Starting Superposition (depends on Redis)...
+docker compose -f docker-compose-demo.yml up -d superposition
+ Container hyperswitch-redis-standalone-1 Running 
+ Container hyperswitch-superposition-1 Creating 
+ Container hyperswitch-superposition-1 Created 
+ Container hyperswitch-redis-standalone-1 Waiting 
+ Container hyperswitch-redis-standalone-1 Healthy 
+ Container hyperswitch-superposition-1 Starting 
+ Container hyperswitch-superposition-1 Started 
+==> Waiting for Superposition to be healthy on :8081...
+==> Superposition is up!
+==> Initialising Superposition workspace (dimension + default config)...
+==> Superposition workspace initialised.
+==> Running DB migrations...
+docker compose -f docker-compose-demo.yml up migration_runner
+ Image docker.io/debian:trixie-slim Pulling 
+ Image docker.io/debian:trixie-slim Pulled 
+ Container hyperswitch-pg-1 Running 
+ Container hyperswitch-migration_runner-1 Creating 
+ Container hyperswitch-migration_runner-1 Created 
+Attaching to migration_runner-1
+ Container hyperswitch-pg-1 Waiting 
+ Container hyperswitch-pg-1 Healthy 
+ Container hyperswitch-migration_runner-1 Starting 
+ Container hyperswitch-migration_runner-1 Started 
+migration_runner-1  | Get:1 http://deb.debian.org/debian trixie InRelease [140 kB]
+migration_runner-1  | Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+migration_runner-1  | Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+migration_runner-1  | Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9608 kB]
+migration_runner-1  | Get:5 http://deb.debian.org/debian trixie-updates/main arm64 Packages [5404 B]
+migration_runner-1  | Get:6 http://deb.debian.org/debian-security trixie-security/main arm64 Packages [180 kB]
+migration_runner-1  | Fetched 10.0 MB in 3s (3115 kB/s)
+migration_runner-1  | Reading package lists...
+migration_runner-1  | Reading package lists...
+migration_runner-1  | Building dependency tree...
+migration_runner-1  | Reading state information...
+migration_runner-1  | The following additional packages will be installed:
+migration_runner-1  |   bash-completion ca-certificates krb5-locales libbrotli1 libcom-err2
+migration_runner-1  |   libcurl4t64 libffi8 libgnutls30t64 libgssapi-krb5-2 libidn2-0 libk5crypto3
+migration_runner-1  |   libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2 libnghttp2-14
+migration_runner-1  |   libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules
+migration_runner-1  |   libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5 openssl
+migration_runner-1  |   publicsuffix
+migration_runner-1  | Suggested packages:
+migration_runner-1  |   gnutls-bin krb5-doc krb5-user libsasl2-modules-gssapi-mit
+migration_runner-1  |   | libsasl2-modules-gssapi-heimdal libsasl2-modules-ldap libsasl2-modules-otp
+migration_runner-1  |   libsasl2-modules-sql
+migration_runner-1  | The following NEW packages will be installed:
+migration_runner-1  |   bash-completion ca-certificates curl krb5-locales libbrotli1 libcom-err2
+migration_runner-1  |   libcurl4t64 libffi8 libgnutls30t64 libgssapi-krb5-2 libidn2-0 libk5crypto3
+migration_runner-1  |   libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2 libnghttp2-14
+migration_runner-1  |   libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules
+migration_runner-1  |   libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5 openssl
+migration_runner-1  |   publicsuffix xz-utils
+migration_runner-1  | 0 upgraded, 31 newly installed, 0 to remove and 0 not upgraded.
+migration_runner-1  | Need to get 7770 kB of archives.
+migration_runner-1  | After this operation, 24.1 MB of additional disk space will be used.
+migration_runner-1  | Get:1 http://deb.debian.org/debian trixie/main arm64 bash-completion all 1:2.16.0-7 [319 kB]
+migration_runner-1  | Get:2 http://deb.debian.org/debian trixie/main arm64 openssl arm64 3.5.6-1~deb13u1 [1467 kB]
+migration_runner-1  | Get:3 http://deb.debian.org/debian trixie/main arm64 ca-certificates all 20250419 [162 kB]
+migration_runner-1  | Get:4 http://deb.debian.org/debian-security trixie-security/main arm64 krb5-locales all 1.21.3-5+deb13u1 [101 kB]
+migration_runner-1  | Get:5 http://deb.debian.org/debian trixie/main arm64 xz-utils arm64 5.8.1-1 [657 kB]
+migration_runner-1  | Get:6 http://deb.debian.org/debian trixie/main arm64 libbrotli1 arm64 1.1.0-2+b7 [308 kB]
+migration_runner-1  | Get:7 http://deb.debian.org/debian-security trixie-security/main arm64 libkrb5support0 arm64 1.21.3-5+deb13u1 [32.5 kB]
+migration_runner-1  | Get:8 http://deb.debian.org/debian trixie/main arm64 libcom-err2 arm64 1.47.2-3+b11 [24.9 kB]
+migration_runner-1  | Get:9 http://deb.debian.org/debian-security trixie-security/main arm64 libk5crypto3 arm64 1.21.3-5+deb13u1 [81.4 kB]
+migration_runner-1  | Get:10 http://deb.debian.org/debian trixie/main arm64 libkeyutils1 arm64 1.6.3-6 [9716 B]
+migration_runner-1  | Get:11 http://deb.debian.org/debian-security trixie-security/main arm64 libkrb5-3 arm64 1.21.3-5+deb13u1 [308 kB]
+migration_runner-1  | Get:12 http://deb.debian.org/debian-security trixie-security/main arm64 libgssapi-krb5-2 arm64 1.21.3-5+deb13u1 [128 kB]
+migration_runner-1  | Get:13 http://deb.debian.org/debian trixie/main arm64 libunistring5 arm64 1.3-2 [453 kB]
+migration_runner-1  | Get:14 http://deb.debian.org/debian trixie/main arm64 libidn2-0 arm64 2.3.8-2 [107 kB]
+migration_runner-1  | Get:15 http://deb.debian.org/debian trixie/main arm64 libsasl2-modules-db arm64 2.1.28+dfsg1-9 [20.1 kB]
+migration_runner-1  | Get:16 http://deb.debian.org/debian trixie/main arm64 libsasl2-2 arm64 2.1.28+dfsg1-9 [55.6 kB]
+migration_runner-1  | Get:17 http://deb.debian.org/debian trixie/main arm64 libldap2 arm64 2.6.10+dfsg-1 [179 kB]
+migration_runner-1  | Get:18 http://deb.debian.org/debian-security trixie-security/main arm64 libnghttp2-14 arm64 1.64.0-1.1+deb13u1 [71.6 kB]
+migration_runner-1  | Get:19 http://deb.debian.org/debian trixie/main arm64 libnghttp3-9 arm64 1.8.0-1 [63.2 kB]
+migration_runner-1  | Get:20 http://deb.debian.org/debian trixie/main arm64 libpsl5t64 arm64 0.21.2-1.1+b1 [57.1 kB]
+migration_runner-1  | Get:21 http://deb.debian.org/debian trixie/main arm64 libffi8 arm64 3.4.8-2 [21.3 kB]
+migration_runner-1  | Get:22 http://deb.debian.org/debian trixie/main arm64 libp11-kit0 arm64 0.25.5-3 [409 kB]
+migration_runner-1  | Get:23 http://deb.debian.org/debian trixie/main arm64 libtasn1-6 arm64 4.20.0-2 [47.3 kB]
+migration_runner-1  | Get:24 http://deb.debian.org/debian-security trixie-security/main arm64 libgnutls30t64 arm64 3.8.9-3+deb13u4 [1379 kB]
+migration_runner-1  | Get:25 http://deb.debian.org/debian trixie/main arm64 librtmp1 arm64 2.4+20151223.gitfa8646d.1-2+b5 [56.8 kB]
+migration_runner-1  | Get:26 http://deb.debian.org/debian trixie/main arm64 libssh2-1t64 arm64 1.11.1-1 [235 kB]
+migration_runner-1  | Get:27 http://deb.debian.org/debian trixie/main arm64 libcurl4t64 arm64 8.14.1-2+deb13u3 [359 kB]
+migration_runner-1  | Get:28 http://deb.debian.org/debian trixie/main arm64 curl arm64 8.14.1-2+deb13u3 [262 kB]
+migration_runner-1  | Get:29 http://deb.debian.org/debian trixie/main arm64 libldap-common all 2.6.10+dfsg-1 [35.1 kB]
+migration_runner-1  | Get:30 http://deb.debian.org/debian trixie/main arm64 libsasl2-modules arm64 2.1.28+dfsg1-9 [62.9 kB]
+migration_runner-1  | Get:31 http://deb.debian.org/debian trixie/main arm64 publicsuffix all 20250328.1952-0.1 [296 kB]
+migration_runner-1  | debconf: unable to initialize frontend: Dialog
+migration_runner-1  | debconf: (TERM is not set, so the dialog frontend is not usable.)
+migration_runner-1  | debconf: falling back to frontend: Readline
+migration_runner-1  | debconf: unable to initialize frontend: Readline
+migration_runner-1  | debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 31.)
+migration_runner-1  | debconf: falling back to frontend: Teletype
+migration_runner-1  | debconf: unable to initialize frontend: Teletype
+migration_runner-1  | debconf: (This frontend requires a controlling tty.)
+migration_runner-1  | debconf: falling back to frontend: Noninteractive
+migration_runner-1  | Preconfiguring packages ...
+migration_runner-1  | Fetched 7770 kB in 2s (4010 kB/s)
+migration_runner-1  | Selecting previously unselected package bash-completion.
+migration_runner-1  | (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 4933 files and directories currently installed.)
+migration_runner-1  | Preparing to unpack .../00-bash-completion_1%3a2.16.0-7_all.deb ...
+migration_runner-1  | Unpacking bash-completion (1:2.16.0-7) ...
+migration_runner-1  | Selecting previously unselected package openssl.
+migration_runner-1  | Preparing to unpack .../01-openssl_3.5.6-1~deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking openssl (3.5.6-1~deb13u1) ...
+migration_runner-1  | Selecting previously unselected package ca-certificates.
+migration_runner-1  | Preparing to unpack .../02-ca-certificates_20250419_all.deb ...
+migration_runner-1  | Unpacking ca-certificates (20250419) ...
+migration_runner-1  | Selecting previously unselected package krb5-locales.
+migration_runner-1  | Preparing to unpack .../03-krb5-locales_1.21.3-5+deb13u1_all.deb ...
+migration_runner-1  | Unpacking krb5-locales (1.21.3-5+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package xz-utils.
+migration_runner-1  | Preparing to unpack .../04-xz-utils_5.8.1-1_arm64.deb ...
+migration_runner-1  | Unpacking xz-utils (5.8.1-1) ...
+migration_runner-1  | Selecting previously unselected package libbrotli1:arm64.
+migration_runner-1  | Preparing to unpack .../05-libbrotli1_1.1.0-2+b7_arm64.deb ...
+migration_runner-1  | Unpacking libbrotli1:arm64 (1.1.0-2+b7) ...
+migration_runner-1  | Selecting previously unselected package libkrb5support0:arm64.
+migration_runner-1  | Preparing to unpack .../06-libkrb5support0_1.21.3-5+deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking libkrb5support0:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package libcom-err2:arm64.
+migration_runner-1  | Preparing to unpack .../07-libcom-err2_1.47.2-3+b11_arm64.deb ...
+migration_runner-1  | Unpacking libcom-err2:arm64 (1.47.2-3+b11) ...
+migration_runner-1  | Selecting previously unselected package libk5crypto3:arm64.
+migration_runner-1  | Preparing to unpack .../08-libk5crypto3_1.21.3-5+deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking libk5crypto3:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package libkeyutils1:arm64.
+migration_runner-1  | Preparing to unpack .../09-libkeyutils1_1.6.3-6_arm64.deb ...
+migration_runner-1  | Unpacking libkeyutils1:arm64 (1.6.3-6) ...
+migration_runner-1  | Selecting previously unselected package libkrb5-3:arm64.
+migration_runner-1  | Preparing to unpack .../10-libkrb5-3_1.21.3-5+deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking libkrb5-3:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package libgssapi-krb5-2:arm64.
+migration_runner-1  | Preparing to unpack .../11-libgssapi-krb5-2_1.21.3-5+deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking libgssapi-krb5-2:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package libunistring5:arm64.
+migration_runner-1  | Preparing to unpack .../12-libunistring5_1.3-2_arm64.deb ...
+migration_runner-1  | Unpacking libunistring5:arm64 (1.3-2) ...
+migration_runner-1  | Selecting previously unselected package libidn2-0:arm64.
+migration_runner-1  | Preparing to unpack .../13-libidn2-0_2.3.8-2_arm64.deb ...
+migration_runner-1  | Unpacking libidn2-0:arm64 (2.3.8-2) ...
+migration_runner-1  | Selecting previously unselected package libsasl2-modules-db:arm64.
+migration_runner-1  | Preparing to unpack .../14-libsasl2-modules-db_2.1.28+dfsg1-9_arm64.deb ...
+migration_runner-1  | Unpacking libsasl2-modules-db:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Selecting previously unselected package libsasl2-2:arm64.
+migration_runner-1  | Preparing to unpack .../15-libsasl2-2_2.1.28+dfsg1-9_arm64.deb ...
+migration_runner-1  | Unpacking libsasl2-2:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Selecting previously unselected package libldap2:arm64.
+migration_runner-1  | Preparing to unpack .../16-libldap2_2.6.10+dfsg-1_arm64.deb ...
+migration_runner-1  | Unpacking libldap2:arm64 (2.6.10+dfsg-1) ...
+migration_runner-1  | Selecting previously unselected package libnghttp2-14:arm64.
+migration_runner-1  | Preparing to unpack .../17-libnghttp2-14_1.64.0-1.1+deb13u1_arm64.deb ...
+migration_runner-1  | Unpacking libnghttp2-14:arm64 (1.64.0-1.1+deb13u1) ...
+migration_runner-1  | Selecting previously unselected package libnghttp3-9:arm64.
+migration_runner-1  | Preparing to unpack .../18-libnghttp3-9_1.8.0-1_arm64.deb ...
+migration_runner-1  | Unpacking libnghttp3-9:arm64 (1.8.0-1) ...
+migration_runner-1  | Selecting previously unselected package libpsl5t64:arm64.
+migration_runner-1  | Preparing to unpack .../19-libpsl5t64_0.21.2-1.1+b1_arm64.deb ...
+migration_runner-1  | Unpacking libpsl5t64:arm64 (0.21.2-1.1+b1) ...
+migration_runner-1  | Selecting previously unselected package libffi8:arm64.
+migration_runner-1  | Preparing to unpack .../20-libffi8_3.4.8-2_arm64.deb ...
+migration_runner-1  | Unpacking libffi8:arm64 (3.4.8-2) ...
+migration_runner-1  | Selecting previously unselected package libp11-kit0:arm64.
+migration_runner-1  | Preparing to unpack .../21-libp11-kit0_0.25.5-3_arm64.deb ...
+migration_runner-1  | Unpacking libp11-kit0:arm64 (0.25.5-3) ...
+migration_runner-1  | Selecting previously unselected package libtasn1-6:arm64.
+migration_runner-1  | Preparing to unpack .../22-libtasn1-6_4.20.0-2_arm64.deb ...
+migration_runner-1  | Unpacking libtasn1-6:arm64 (4.20.0-2) ...
+migration_runner-1  | Selecting previously unselected package libgnutls30t64:arm64.
+migration_runner-1  | Preparing to unpack .../23-libgnutls30t64_3.8.9-3+deb13u4_arm64.deb ...
+migration_runner-1  | Unpacking libgnutls30t64:arm64 (3.8.9-3+deb13u4) ...
+migration_runner-1  | Selecting previously unselected package librtmp1:arm64.
+migration_runner-1  | Preparing to unpack .../24-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_arm64.deb ...
+migration_runner-1  | Unpacking librtmp1:arm64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+migration_runner-1  | Selecting previously unselected package libssh2-1t64:arm64.
+migration_runner-1  | Preparing to unpack .../25-libssh2-1t64_1.11.1-1_arm64.deb ...
+migration_runner-1  | Unpacking libssh2-1t64:arm64 (1.11.1-1) ...
+migration_runner-1  | Selecting previously unselected package libcurl4t64:arm64.
+migration_runner-1  | Preparing to unpack .../26-libcurl4t64_8.14.1-2+deb13u3_arm64.deb ...
+migration_runner-1  | Unpacking libcurl4t64:arm64 (8.14.1-2+deb13u3) ...
+migration_runner-1  | Selecting previously unselected package curl.
+migration_runner-1  | Preparing to unpack .../27-curl_8.14.1-2+deb13u3_arm64.deb ...
+migration_runner-1  | Unpacking curl (8.14.1-2+deb13u3) ...
+migration_runner-1  | Selecting previously unselected package libldap-common.
+migration_runner-1  | Preparing to unpack .../28-libldap-common_2.6.10+dfsg-1_all.deb ...
+migration_runner-1  | Unpacking libldap-common (2.6.10+dfsg-1) ...
+migration_runner-1  | Selecting previously unselected package libsasl2-modules:arm64.
+migration_runner-1  | Preparing to unpack .../29-libsasl2-modules_2.1.28+dfsg1-9_arm64.deb ...
+migration_runner-1  | Unpacking libsasl2-modules:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Selecting previously unselected package publicsuffix.
+migration_runner-1  | Preparing to unpack .../30-publicsuffix_20250328.1952-0.1_all.deb ...
+migration_runner-1  | Unpacking publicsuffix (20250328.1952-0.1) ...
+migration_runner-1  | Setting up libkeyutils1:arm64 (1.6.3-6) ...
+migration_runner-1  | Setting up libbrotli1:arm64 (1.1.0-2+b7) ...
+migration_runner-1  | Setting up libsasl2-modules:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Setting up libnghttp2-14:arm64 (1.64.0-1.1+deb13u1) ...
+migration_runner-1  | Setting up krb5-locales (1.21.3-5+deb13u1) ...
+migration_runner-1  | Setting up libcom-err2:arm64 (1.47.2-3+b11) ...
+migration_runner-1  | Setting up libldap-common (2.6.10+dfsg-1) ...
+migration_runner-1  | Setting up libkrb5support0:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Setting up libsasl2-modules-db:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Setting up bash-completion (1:2.16.0-7) ...
+migration_runner-1  | Setting up xz-utils (5.8.1-1) ...
+migration_runner-1  | update-alternatives: using /usr/bin/xz to provide /usr/bin/lzma (lzma) in auto mode
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzma.1.gz because associated file /usr/share/man/man1/xz.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/unlzma.1.gz because associated file /usr/share/man/man1/unxz.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzcat.1.gz because associated file /usr/share/man/man1/xzcat.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzmore.1.gz because associated file /usr/share/man/man1/xzmore.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzless.1.gz because associated file /usr/share/man/man1/xzless.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzdiff.1.gz because associated file /usr/share/man/man1/xzdiff.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzcmp.1.gz because associated file /usr/share/man/man1/xzcmp.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzgrep.1.gz because associated file /usr/share/man/man1/xzgrep.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzegrep.1.gz because associated file /usr/share/man/man1/xzegrep.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | update-alternatives: warning: skip creation of /usr/share/man/man1/lzfgrep.1.gz because associated file /usr/share/man/man1/xzfgrep.1.gz (of link group lzma) doesn't exist
+migration_runner-1  | Setting up libunistring5:arm64 (1.3-2) ...
+migration_runner-1  | Setting up libk5crypto3:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Setting up libsasl2-2:arm64 (2.1.28+dfsg1-9) ...
+migration_runner-1  | Setting up libnghttp3-9:arm64 (1.8.0-1) ...
+migration_runner-1  | Setting up libffi8:arm64 (3.4.8-2) ...
+migration_runner-1  | Setting up libtasn1-6:arm64 (4.20.0-2) ...
+migration_runner-1  | Setting up libkrb5-3:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Setting up libssh2-1t64:arm64 (1.11.1-1) ...
+migration_runner-1  | Setting up openssl (3.5.6-1~deb13u1) ...
+migration_runner-1  | Setting up publicsuffix (20250328.1952-0.1) ...
+migration_runner-1  | Setting up libldap2:arm64 (2.6.10+dfsg-1) ...
+migration_runner-1  | Setting up libidn2-0:arm64 (2.3.8-2) ...
+migration_runner-1  | Setting up ca-certificates (20250419) ...
+migration_runner-1  | debconf: unable to initialize frontend: Dialog
+migration_runner-1  | debconf: (TERM is not set, so the dialog frontend is not usable.)
+migration_runner-1  | debconf: falling back to frontend: Readline
+migration_runner-1  | debconf: unable to initialize frontend: Readline
+migration_runner-1  | debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8.)
+migration_runner-1  | debconf: falling back to frontend: Teletype
+migration_runner-1  | debconf: unable to initialize frontend: Teletype
+migration_runner-1  | debconf: (This frontend requires a controlling tty.)
+migration_runner-1  | debconf: falling back to frontend: Noninteractive
+migration_runner-1  | Updating certificates in /etc/ssl/certs...
+migration_runner-1  | 150 added, 0 removed; done.
+migration_runner-1  | Setting up libp11-kit0:arm64 (0.25.5-3) ...
+migration_runner-1  | Setting up libgssapi-krb5-2:arm64 (1.21.3-5+deb13u1) ...
+migration_runner-1  | Setting up libgnutls30t64:arm64 (3.8.9-3+deb13u4) ...
+migration_runner-1  | Setting up libpsl5t64:arm64 (0.21.2-1.1+b1) ...
+migration_runner-1  | Setting up librtmp1:arm64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+migration_runner-1  | Setting up libcurl4t64:arm64 (8.14.1-2+deb13u3) ...
+migration_runner-1  | Setting up curl (8.14.1-2+deb13u3) ...
+migration_runner-1  | Processing triggers for libc-bin (2.41-12+deb13u3) ...
+migration_runner-1  | Processing triggers for ca-certificates (20250419) ...
+migration_runner-1  | Updating certificates in /etc/ssl/certs...
+migration_runner-1  | 0 added, 0 removed; done.
+migration_runner-1  | Running hooks in /etc/ca-certificates/update.d...
+migration_runner-1  | done.
+migration_runner-1  | downloading diesel_cli 2.3.5 aarch64-unknown-linux-gnu
+migration_runner-1  | installing to /root/.cargo/bin
+migration_runner-1  |   diesel
+migration_runner-1  | everything's installed!
+migration_runner-1  | 
+migration_runner-1  | To add $HOME/.cargo/bin to your PATH, either restart your shell or run:
+migration_runner-1  | 
+migration_runner-1  |     source $HOME/.cargo/env (sh, bash, zsh)
+migration_runner-1  |     source $HOME/.cargo/env.fish (fish)
+migration_runner-1  | install: Repository:  https://github.com/casey/just
+migration_runner-1  | install: Crate:       just
+migration_runner-1  | install: Tag:         1.51.0
+migration_runner-1  | install: Target:      aarch64-unknown-linux-musl
+migration_runner-1  | install: Destination: /usr/local/bin
+migration_runner-1  | install: Archive:     https://github.com/casey/just/releases/download/1.51.0/just-1.51.0-aarch64-unknown-linux-musl.tar.gz
+migration_runner-1  | diesel migration --database-url 'postgresql://db_user:db_pass@pg:5432/hyperswitch_db' run --migration-dir '/app/migrations' --config-file '/app/diesel.toml' 
+migration_runner-1  | Running migration 2022-09-29-084920_create_initial_tables
+migration_runner-1  | Running migration 2022-10-20-100628_add_cancellation_reason
+migration_runner-1  | Running migration 2022-10-26-101016_update_payment_attempt_status_intent_status
+migration_runner-1  | Running migration 2022-11-03-130214_create_connector_response_table
+migration_runner-1  | Running migration 2022-11-08-101705_add_cancel_to_payment_intent_status
+migration_runner-1  | Running migration 2022-11-21-133803_add_mandate_id_in_payment_attempt
+migration_runner-1  | Running migration 2022-11-24-095709_add_browser_info_to_payment_attempt
+migration_runner-1  | Running migration 2022-11-25-121143_add_paypal_pmt
+migration_runner-1  | Running migration 2022-11-30-084736_update-index-in-mca
+migration_runner-1  | Running migration 2022-12-05-090521_single_use_mandate_fields
+migration_runner-1  | Running migration 2022-12-07-055441_add_use_kv_to_merchant_account
+migration_runner-1  | Running migration 2022-12-07-133736_make_connector_field_optional
+migration_runner-1  | Running migration 2022-12-09-102635_mandate-connector-and-amount
+migration_runner-1  | Running migration 2022-12-10-123613_update_address_and_customer
+migration_runner-1  | Running migration 2022-12-11-190755_update_mock_up
+migration_runner-1  | Running migration 2022-12-12-132936_reverse_lookup
+migration_runner-1  | Running migration 2022-12-13-170152_add_connector_metadata
+migration_runner-1  | Running migration 2022-12-14-074547_error-code-in-payment_attempt
+migration_runner-1  | Running migration 2022-12-14-090419_add_payment_token_in_payment_attempt
+migration_runner-1  | Running migration 2022-12-14-092540_i32_to_i64
+migration_runner-1  | Running migration 2022-12-14-162701_update_payment_method
+migration_runner-1  | Running migration 2022-12-19-085322_rename_txn_id_to_attempt_id
+migration_runner-1  | Running migration 2022-12-19-085739_add_attempt_id_to_refund
+migration_runner-1  | Running migration 2022-12-20-065945_reduce_size_of_varchar_columns
+migration_runner-1  | Running migration 2022-12-21-071825_add_refund_reason
+migration_runner-1  | Running migration 2022-12-21-124904_remove_metadata_default_as_null
+migration_runner-1  | Running migration 2022-12-22-091431_attempt_status_rename
+migration_runner-1  | Running migration 2022-12-27-172643_update_locker_mock_up
+migration_runner-1  | Running migration 2023-01-03-122401_update_merchant_account
+migration_runner-1  | Running migration 2023-01-10-035412_connector-metadata-payment-attempt
+migration_runner-1  | Running migration 2023-01-11-134448_add_metadata_to_merchant_account
+migration_runner-1  | Running migration 2023-01-12-084710_update_merchant_routing_algorithm
+migration_runner-1  | Running migration 2023-01-12-140107_drop_temp_card
+migration_runner-1  | Running migration 2023-01-19-122511_add_refund_error_code
+migration_runner-1  | Running migration 2023-01-20-113235_add_attempt_id_to_payment_intent
+migration_runner-1  | Running migration 2023-02-01-135102_create_api_keys_table
+migration_runner-1  | Running migration 2023-02-02-055700_add_payment_issuer_and_experience_in_payment_attempt
+migration_runner-1  | Running migration 2023-02-02-062215_remove_redirect_and_payment_flow_from_payment_attempt
+migration_runner-1  | Running migration 2023-02-07-070512_change_merchant_connector_id_data_type
+migration_runner-1  | Running migration 2023-02-09-093400_add_bank_redirect
+migration_runner-1  | Running migration 2023-02-10-083146_make_payment_method_type_as_text
+migration_runner-1  | Running migration 2023-02-20-101809_update_merchant_connector_account
+migration_runner-1  | Running migration 2023-02-21-065628_update_merchant_account
+migration_runner-1  | Running migration 2023-02-21-094019_api_keys_remove_hash_key
+migration_runner-1  | Running migration 2023-02-22-100331_rename_pm_type_enum
+migration_runner-1  | Running migration 2023-02-28-072631_ang-currency
+migration_runner-1  | Running migration 2023-02-28-112730_add_refund_webhook_types
+migration_runner-1  | Running migration 2023-03-04-114058_remove_api_key_column_merchant_account_table
+migration_runner-1  | Running migration 2023-03-07-141638_make_payment_attempt_connector_json
+migration_runner-1  | Running migration 2023-03-14-123541_add_cards_info_table
+migration_runner-1  | Running migration 2023-03-15-082312_add_connector_txn_id_merchant_id_index_in_payment_attempt
+migration_runner-1  | Running migration 2023-03-15-185959_add_dispute_table
+migration_runner-1  | Running migration 2023-03-16-105114_add_data_collection_status
+migration_runner-1  | Running migration 2023-03-23-095309_add_business_sub_label_to_mca
+migration_runner-1  | Running migration 2023-03-23-123920_add_business_label_and_country_to_pi
+migration_runner-1  | Running migration 2023-03-26-163105_add_unresolved_status
+migration_runner-1  | Running migration 2023-03-27-091611_change_country_to_enum
+migration_runner-1  | Running migration 2023-03-30-132338_add_start_end_date_for_mandates
+migration_runner-1  | Running migration 2023-04-03-082335_update_mca_frm_configs
+migration_runner-1  | Running migration 2023-04-04-061926_add_dispute_api_schema
+migration_runner-1  | Running migration 2023-04-05-051523_add_business_sub_label_to_payment_attempt
+migration_runner-1  | Running migration 2023-04-05-121040_alter_mca_change_country_to_enum
+migration_runner-1  | Running migration 2023-04-05-121047_alter_pi_change_country_to_enum
+migration_runner-1  | Running migration 2023-04-06-063047_add_connector_col_in_dispute
+migration_runner-1  | Running migration 2023-04-06-092008_create_merchant_ek
+migration_runner-1  | Running migration 2023-04-11-084958_pii-migration
+migration_runner-1  | Running migration 2023-04-12-075449_separate_payment_attempt_algorithm_col
+migration_runner-1  | Running migration 2023-04-13-094917_change_primary_business_type
+migration_runner-1  | Running migration 2023-04-19-072152_merchant_account_add_intent_fulfilment_time
+migration_runner-1  | Running migration 2023-04-19-120503_update_customer_connector_customer
+migration_runner-1  | Running migration 2023-04-19-120735_add_time_for_tables
+migration_runner-1  | Running migration 2023-04-20-073704_allow_multiple_mandate_ids
+migration_runner-1  | Running migration 2023-04-20-162755_add_preprocessing_step_id_payment_attempt
+migration_runner-1  | Running migration 2023-04-21-100150_create_index_for_api_keys
+migration_runner-1  | Running migration 2023-04-25-061159_rename_country_code_to_country_alpha2
+migration_runner-1  | Running migration 2023-04-25-091017_merchant_account_add_frm_routing_algorithm.sql
+migration_runner-1  | Running migration 2023-04-25-141011_add_connector_label_col_in_file_metadata
+migration_runner-1  | Running migration 2023-04-26-062424_alter_dispute_table
+migration_runner-1  | Running migration 2023-04-26-090005_remove_default_created_at_modified_at
+migration_runner-1  | Running migration 2023-04-27-120010_add_payment_failed_event_type
+migration_runner-1  | Running migration 2023-05-02-102332_payout_create
+migration_runner-1  | Running migration 2023-05-03-121025_nest_straight_through_col_in_payment_attempt
+migration_runner-1  | Running migration 2023-05-05-112013_add_evidence_col_in_dispute
+migration_runner-1  | Running migration 2023-05-08-141907_rename_dispute_cols
+migration_runner-1  | Running migration 2023-05-16-145008_mandate_data_in_pa
+migration_runner-1  | Running migration 2023-05-29-094747_order-details-as-a-separate-column.sql
+migration_runner-1  | Running migration 2023-05-31-152153_add_connector_webhook_details_to_mca
+migration_runner-1  | Running migration 2023-06-14-105035_add_reason_in_payment_attempt
+migration_runner-1  | Running migration 2023-06-16-073615_add_ron_currency_to_db
+migration_runner-1  | Running migration 2023-06-18-042123_add_udf_column_in_payments
+migration_runner-1  | Running migration 2023-06-19-071300_merchant_key_store_shrink_merchant_id
+migration_runner-1  | Running migration 2023-06-22-161131_change-type-of-frm-configs.sql
+migration_runner-1  | Running migration 2023-06-26-124254_add_vnd_to_currency_enum
+migration_runner-1  | Running migration 2023-06-29-094858_payment-intent-remove-udf-field
+migration_runner-1  | Running migration 2023-07-01-184850_payment-intent-add-metadata-fields
+migration_runner-1  | Running migration 2023-07-03-093552_add_attempt_count_in_payment_intent
+migration_runner-1  | Running migration 2023-07-04-131721_add_org_id_and_org_name
+migration_runner-1  | Running migration 2023-07-07-091223_create_captures_table
+migration_runner-1  | Running migration 2023-07-08-134807_add_connector_response_reference_id_in_payment_intent
+migration_runner-1  | Running migration 2023-07-11-140347_add_is_recon_enabled_field_in_merchant_account
+migration_runner-1  | Running migration 2023-07-17-111427_add-fraud-check-table.sql
+migration_runner-1  | Running migration 2023-07-19-081050_add_zero_decimal_currencies
+migration_runner-1  | Running migration 2023-07-28-111829_update_columns_to_fix_db_diff
+migration_runner-1  | Running migration 2023-08-01-165717_make_event_id_unique_for_events_table
+migration_runner-1  | Running migration 2023-08-08-144148_add_business_profile_table
+migration_runner-1  | Running migration 2023-08-11-073905_add_frm_config_in_mca
+migration_runner-1  | Running migration 2023-08-16-080721_make_connector_field_mandatory_capture_table
+migration_runner-1  | Running migration 2023-08-16-103806_add_last_executed_frm_step
+migration_runner-1  | Running migration 2023-08-16-112847_add_profile_id_in_affected_tables
+migration_runner-1  | Running migration 2023-08-23-090712_payment_attempt_perf_idx
+migration_runner-1  | Running migration 2023-08-24-095037_add_profile_id_in_file_metadata
+migration_runner-1  | Running migration 2023-08-25-094551_add_recon_status_in_merchant_account
+migration_runner-1  | Running migration 2023-08-28-131238_make_business_details_optional
+migration_runner-1  | Running migration 2023-08-31-093852_add_merchant_decision
+migration_runner-1  | Running migration 2023-09-06-101704_payment_method_data_in_payment_methods
+migration_runner-1  | Running migration 2023-09-07-113914_add_amount_capturable_field_payment_attempt
+migration_runner-1  | Running migration 2023-09-08-101302_add_payment_link
+migration_runner-1  | Running migration 2023-09-08-112817_applepay_verified_domains_in_business_profile
+migration_runner-1  | Running migration 2023-09-08-114828_add_payment_link_id_in_payment_intent
+migration_runner-1  | Running migration 2023-09-08-134514_add_payment_confirm_source_in_payment_intent
+migration_runner-1  | Running migration 2023-09-13-075226_applepay_verified_domains_in_mca
+migration_runner-1  | Running migration 2023-09-14-032447_add_payment_id_in_address
+migration_runner-1  | Running migration 2023-09-17-152010_make_id_not_null_address
+migration_runner-1  | Running migration 2023-09-18-104900_add_pm_auth_config_mca
+migration_runner-1  | Running migration 2023-09-25-125007_add_surcharge_metadata_payment_attempt
+migration_runner-1  | Running migration 2023-10-05-085859_make_org_id_mandatory_in_ma
+migration_runner-1  | Running migration 2023-10-05-114138_add_payment_id_in_mandate
+migration_runner-1  | Running migration 2023-10-05-130917_add_mandate_webhook_types
+migration_runner-1  | Running migration 2023-10-06-101134_add_paymentLink_metadata_in_merchant_account
+migration_runner-1  | Running migration 2023-10-13-090450_add_updated_by_for_tables
+migration_runner-1  | Running migration 2023-10-13-100447_add-payment-cancelled-event-type
+migration_runner-1  | Running migration 2023-10-19-071731_add_connector_id_to_payment_attempt
+migration_runner-1  | Running migration 2023-10-19-075810_add_surcharge_applicable_payment_intent
+migration_runner-1  | Running migration 2023-10-19-101558_create_routing_algorithm_table
+migration_runner-1  | Running migration 2023-10-19-102636_back_fill_n_remove_connector_response
+migration_runner-1  | Running migration 2023-10-19-124023_add_connector_id_to_other_tables
+migration_runner-1  | Running migration 2023-10-23-101023_add_organization_table
+migration_runner-1  | Running migration 2023-10-25-070909_add_merchant_custom_name_payment_link
+migration_runner-1  | Running migration 2023-10-27-064512_alter_payout_profile_id
+migration_runner-1  | Running migration 2023-10-31-070509_add_payment_link_config_in_payment_link_db
+migration_runner-1  | Running migration 2023-11-02-074243_make_customer_id_nullable_in_address_table
+migration_runner-1  | Running migration 2023-11-06-065213_add_description_to_payment_link
+migration_runner-1  | Running migration 2023-11-06-110233_create_user_table
+migration_runner-1  | Running migration 2023-11-06-113726_create_user_roles_table
+migration_runner-1  | Running migration 2023-11-06-153840_introduce_new_attempt_and_intent_status
+migration_runner-1  | Running migration 2023-11-07-110139_add_gsm_table
+migration_runner-1  | Running migration 2023-11-08-144951_drop_connector_response_table
+migration_runner-1  | Running migration 2023-11-12-131143_connector-status-column
+migration_runner-1  | Running migration 2023-11-17-061003_add-unified-error-code-mssg-gsm
+migration_runner-1  | Running migration 2023-11-17-084413_add-unified-error-code-mssg-payment-attempt
+migration_runner-1  | Running migration 2023-11-23-100644_create_dashboard_metadata_table
+migration_runner-1  | Running migration 2023-11-24-112541_add_payment_config_business_profile
+migration_runner-1  | Running migration 2023-11-24-115538_add_profile_id_payment_link
+migration_runner-1  | Running migration 2023-11-28-081058_add-request_incremental_authorization-in-payment-intent
+migration_runner-1  | Running migration 2023-11-29-063030_add-incremental_authorization_allowed-in-payment-intent
+migration_runner-1  | Running migration 2023-11-30-170902_add-authorizations-table
+migration_runner-1  | Running migration 2023-12-01-090834_add-authorization_count-in-payment_intent
+migration_runner-1  | Running migration 2023-12-06-060216_change_primary_key_for_mca
+migration_runner-1  | Running migration 2023-12-06-112810_add_intent_fullfilment_time_payment_intent
+migration_runner-1  | Running migration 2023-12-07-075240_make-request-incremental-auth-optional-intent
+migration_runner-1  | Running migration 2023-12-11-075542_create_pm_fingerprint_table
+migration_runner-1  | Running migration 2023-12-12-112941_create_pm_blocklist_table
+migration_runner-1  | Running migration 2023-12-12-113330_add_fingerprint_id_in_payment_intent
+migration_runner-1  | Running migration 2023-12-14-060824_user_roles_user_status_column
+migration_runner-1  | Running migration 2023-12-14-101348_alter_dashboard_metadata_key_type
+migration_runner-1  | Running migration 2023-12-15-062816__net_amount_in_payment_attempt
+migration_runner-1  | Running migration 2023-12-18-062613_create_blocklist_lookup_table
+migration_runner-1  | Running migration 2023-12-27-104559_business_profile_add_session_expiry
+migration_runner-1  | Running migration 2023-12-28-063619_add_enum_types_to_EventType
+migration_runner-1  | Running migration 2024-01-02-111223_users_preferred_merchant_column
+migration_runner-1  | Running migration 2024-01-04-121733_add_dashboard_metadata_key_integration_completed
+migration_runner-1  | Running migration 2024-01-22-091431_create_authentication_table
+migration_runner-1  | Running migration 2024-01-22-114747_add_authentication_fields_to_attempt
+migration_runner-1  | Running migration 2024-01-29-100008_routing_info_for_payout_attempts
+migration_runner-1  | Running migration 2024-01-30-090815_alter_payout_type
+migration_runner-1  | Running migration 2024-02-05-123412_add_attempt_count_column_to_payouts
+migration_runner-1  | Running migration 2024-02-07-075631_add_request_external_authentication_in_intent
+migration_runner-1  | Running migration 2024-02-08-142804_add_mandate_data_payment_attempt
+migration_runner-1  | Running migration 2024-02-11-092812_add_authentication_processor_enum_to_ConnectorType
+migration_runner-1  | Running migration 2024-02-12-135546_add_fingerprint_id_in_payment_attempt
+migration_runner-1  | Running migration 2024-02-14-092225_create_roles_table
+migration_runner-1  | Running migration 2024-02-15-133957_add_email_to_address
+migration_runner-1  | Running migration 2024-02-15-153757_add_dashboard_metadata_enum_is_change_password_required
+migration_runner-1  | Running migration 2024-02-20-142032_add_locker_id_to_payment_methods
+migration_runner-1  | Running migration 2024-02-20-180952_add_connector_metadata_in_authentication
+migration_runner-1  | Running migration 2024-02-21-101951_add_payment_method_billing_to_payment_attempt
+migration_runner-1  | Running migration 2024-02-21-120100_add_last_used_at_in_payment_methods
+migration_runner-1  | Running migration 2024-02-21-143530_add_default_payment_method_in_customers
+migration_runner-1  | Running migration 2024-02-22-060352_add_mit_columns_to_payment_methods
+migration_runner-1  | Running migration 2024-02-22-100718_role_name_org_id_constraint
+migration_runner-1  | Running migration 2024-02-27-130532_add_enum_types_to_payment-source_enum
+migration_runner-1  | Running migration 2024-02-28-103308_add_dispute_amount_to_dispute
+migration_runner-1  | Running migration 2024-02-29-082737_update_payouts_for_analytics
+migration_runner-1  | Running migration 2024-03-01-111007_add_authentication_details_in_business_profile
+migration_runner-1  | Running migration 2024-03-04-204051_events_store_webhook_delivery_attempt_info
+migration_runner-1  | Running migration 2024-03-07-102620_add-network-transaction-id
+migration_runner-1  | Running migration 2024-03-11-102743_add_additional_authentication_fields
+migration_runner-1  | Running migration 2024-03-15-133951_pm-client-secret
+migration_runner-1  | Running migration 2024-03-16-170320_add_events_indexes
+migration_runner-1  | Running migration 2024-04-03-090257_add_profile_id_in_authentication_table
+migration_runner-1  | Running migration 2024-04-04-080427_add_payment_id_in_authentication_table
+migration_runner-1  | Running migration 2024-04-09-202926_add_confirm_to_payouts
+migration_runner-1  | Running migration 2024-04-10-034442_alter_payout_status
+migration_runner-1  | Running migration 2024-04-12-100908_add_dashboard_metadata_key_onboarding_survey
+migration_runner-1  | Running migration 2024-04-12-100925_mca_additional_merchant_data
+migration_runner-1  | Running migration 2024-04-15-101918_add_merchant_connector_id_in_authentication_table
+migration_runner-1  | Running migration 2024-04-17-084906_add_generic_link_table
+migration_runner-1  | Running migration 2024-04-23-061745_add_pm_collect_link_config_to_merchant_account
+migration_runner-1  | Running migration 2024-04-23-132120_add-extended-card-info-to-business-profile
+migration_runner-1  | Running migration 2024-04-24-075735_add-merchant-pkey-ttl-to-business-profile
+migration_runner-1  | Running migration 2024-04-24-104042_add_capture_method_in_fraud_check_table
+migration_runner-1  | Running migration 2024-04-24-111807_add-is-connector_agnostic_mit
+migration_runner-1  | Running migration 2024-04-28-095920_make_error_message_field_text
+migration_runner-1  | Running migration 2024-04-29-075651_store_payment_method_data_billing_in_payment_methods
+migration_runner-1  | Running migration 2024-05-06-065226_add_billing_config_to_business_profile
+migration_runner-1  | Running migration 2024-05-06-105026_user_key_store_table
+migration_runner-1  | Running migration 2024-05-06-165401_add_charges_in_payment_intent
+migration_runner-1  | Running migration 2024-05-07-080628_user_totp
+migration_runner-1  | Running migration 2024-05-07-092445_add_last_password_modified_at_column_to_users
+migration_runner-1  | Running migration 2024-05-08-111348_delete_unused_column_from_authentication
+migration_runner-1  | Running migration 2024-05-09-130152_collect_shipping_details_from_wallet_connector
+migration_runner-1  | Running migration 2024-05-10-074332_add_frm_metadata_to_payment_intent
+migration_runner-1  | Running migration 2024-05-14-092623_add_updated_by_column
+migration_runner-1  | Running migration 2024-05-15-133715_add_client_info_columns_in_payment_attempts
+migration_runner-1  | Running migration 2024-05-16-133628_make_connector_payout_id_nullalble
+migration_runner-1  | Running migration 2024-05-19-144009_add_new_value_to_event_type
+migration_runner-1  | Running migration 2024-05-21-065403_add_ds_trans_id_to_authentication_table
+migration_runner-1  | Running migration 2024-05-21-075556_add_directory_server_id_in_authentication
+migration_runner-1  | Running migration 2024-05-24-093318_add_more_currencies
+migration_runner-1  | Running migration 2024-05-27-190323_add_new_status_to_payout_status
+migration_runner-1  | Running migration 2024-05-28-054439_connector_wallets_details
+migration_runner-1  | Running migration 2024-05-30-105524_add_payout_link_id_in_payouts
+migration_runner-1  | Running migration 2024-05-31-074402_add_acquirer_country_code_in_authentication
+migration_runner-1  | Running migration 2024-06-03-090859_make_id_as_optional_for_payments
+migration_runner-1  | Running migration 2024-06-04-074145_add_client_secret_in_payouts
+migration_runner-1  | Running migration 2024-06-04-095858_add_priority_to_payouts
+migration_runner-1  | Running migration 2024-06-04-140449_create_index_for_connector_payout_id_and_merchant_id_in_payout_attempt
+migration_runner-1  | Running migration 2024-06-06-101812_user_optional_password
+migration_runner-1  | Running migration 2024-06-10-084722_create_user_authentication_methods_table
+migration_runner-1  | Running migration 2024-06-11-133954_make-payout_type-optional-in-payouts
+migration_runner-1  | Running migration 2024-06-12-060604_add_customer_details_in_payment_intent
+migration_runner-1  | Running migration 2024-06-14-145304_events_add_metadata_column
+migration_runner-1  | Running migration 2024-06-20-142013_collect_billing_details_from_wallet_connector
+migration_runner-1  | Running migration 2024-06-23-200642_add_billing_details_in_payment_intent
+migration_runner-1  | Running migration 2024-07-03-182616_add_merchant_order_reference_id
+migration_runner-1  | Running migration 2024-07-05-115837_add_shipping_details_in_payment_intent
+migration_runner-1  | Running migration 2024-07-10-065816_add_custom_outgoing_webhook_http_headers_to_business_profile
+migration_runner-1  | Running migration 2024-07-11-072518_add_customer_acceptance_in_payment_attempt
+migration_runner-1  | Running migration 2024-07-15-111327_change_primary_key_for_merchant_account
+migration_runner-1  | Running migration 2024-07-15-120121_change_primary_key_for_dispute
+migration_runner-1  | Running migration 2024-07-15-143920_change_primary_key_for_mandate
+migration_runner-1  | Running migration 2024-07-15-170210_change_primary_key_for_merchant_connector_account
+migration_runner-1  | Running migration 2024-07-17-064610_add_allowed_domains_to_link_data
+migration_runner-1  | Running migration 2024-07-17-131830_alter_payment_link
+migration_runner-1  | Running migration 2024-07-17-174449_change_primary_key_for_blocklist_table
+migration_runner-1  | Running migration 2024-07-18-120134_create_additional_fields_in_organization_table
+migration_runner-1  | Running migration 2024-07-19-044034_change_primary_key_for_refund
+migration_runner-1  | Running migration 2024-07-19-095541_change_primary_key_for_users
+migration_runner-1  | Running migration 2024-07-19-100016_change_primary_key_for_user_roles
+migration_runner-1  | Running migration 2024-07-19-100936_change_primary_key_for_roles
+migration_runner-1  | Running migration 2024-07-21-120246_add_version_mapping
+migration_runner-1  | Running migration 2024-07-22-082828_change_primary_key_for_payment_methods
+migration_runner-1  | Running migration 2024-07-23-060446_always_collect_billing_details_from_wallet_connector
+migration_runner-1  | Running migration 2024-07-23-060936_always_collect_shipping_details_from_wallet_connector
+migration_runner-1  | Running migration 2024-07-23-100214_make_org_and_merchant_id_nullable_user_roles
+migration_runner-1  | Running migration 2024-07-29-062548_add-organization_name-and-id-fields-in-organization
+migration_runner-1  | Running migration 2024-07-30-124102_add_entity_type_to_roles
+migration_runner-1  | Running migration 2024-07-31-063531_alter_customer_id_in_payouts
+migration_runner-1  | Running migration 2024-08-01-172628_add_is_payment_processor_token_flow_in_payment_intent_table
+migration_runner-1  | Running migration 2024-08-05-171030_add_shipping_cost_in_payment_intent
+migration_runner-1  | Running migration 2024-08-06-103905_drop_user_id_merchant_id_unique_in_user_roles
+migration_runner-1  | Running migration 2024-08-08-075600_add_api_version_to_merchant_account
+migration_runner-1  | Running migration 2024-08-09-102122_added_tax_connector_id_and_is_tax_connector_enabled_in_business_profile_table
+migration_runner-1  | Running migration 2024-08-12-104928_add_api_version_in_mca
+migration_runner-1  | Running migration 2024-08-12-130304_add_translations_table
+migration_runner-1  | Running migration 2024-08-20-112035_add-profile-id-to-txn-tables
+migration_runner-1  | Running migration 2024-08-21-085916_add_tax_details_in_payment_intent_to_store_tax_amount
+migration_runner-1  | Running migration 2024-08-26-043046_add-card-network-field-for-pa
+migration_runner-1  | Running migration 2024-08-27-190822_add_tax_processor_in_connector_type
+migration_runner-1  | Running migration 2024-08-28-044317_add_skip_external_tax_calcualtion_in_payment_intent_table
+migration_runner-1  | Running migration 2024-08-29-135449_add_version_to_business_profile
+migration_runner-1  | Running migration 2024-09-01-094614_remove-preferred-merchant-from-users
+migration_runner-1  | Running migration 2024-09-02-112941_add_version_in_payment_methods
+migration_runner-1  | Running migration 2024-09-03-053218_add_unified_code_message_to_payout
+migration_runner-1  | Running migration 2024-09-05-155712_add_new_variant_in_routing_algorithm_kind_type
+migration_runner-1  | Running migration 2024-09-05-160455_add_new_col_is_dynamic_routing_algorithm_in_business_profile
+migration_runner-1  | Running migration 2024-09-10-080050_add_shipping_cost_and_order_tax_amount_to_payment_attempt
+migration_runner-1  | Running migration 2024-09-12-112019_add_is_network_tokenization_enabled_in_business_profile
+migration_runner-1  | Running migration 2024-09-12-123315_add_network_token_locker_id_and_network_token_payment_method_data_and_network_token_ref_id_in_payment_methods
+migration_runner-1  | Running migration 2024-09-15-080630_add_addtional_payout_method_data_column_to_payout_attempt_table
+migration_runner-1  | Running migration 2024-09-24-105659_alter_entity_type_internal_to_merchant
+migration_runner-1  | Running migration 2024-09-25-113851_increase_connector_transaction_id_length_in_payment_and_refund
+migration_runner-1  | Running migration 2024-09-26-113912_add-auto-retries-configs-in-profile
+migration_runner-1  | Running migration 2024-10-13-182546_add_connector_mandate_id_in_payment_attempt
+migration_runner-1  | Running migration 2024-10-17-073555_add-profile-id-to-roles
+migration_runner-1  | Running migration 2024-10-17-123943_add-profile-enum-in-role-scope
+migration_runner-1  | Running migration 2024-10-24-123318_update-entity-type-column-in-roles
+migration_runner-1  | Running migration 2024-10-26-105654_add_column_tenant_id_to_user_roles
+migration_runner-1  | Running migration 2024-10-28-125949_add_dispute_currency_column_in_dispute_table
+migration_runner-1  | Running migration 2024-11-06-121933_setup-themes-table
+migration_runner-1  | Running migration 2024-11-13-090548_add-extended-authorization-related-fields
+migration_runner-1  | Running migration 2024-11-13-105952_add_call-back-mapper_table
+migration_runner-1  | Running migration 2024-11-14-084429_add_sca_exemption_field_to_payment_intent
+migration_runner-1  | Running migration 2024-11-15-171347_add_capture_method_sequential_automatic
+migration_runner-1  | Running migration 2024-11-20-110014_add-entity-type-and-theme-name-in-themes
+migration_runner-1  | Running migration 2024-11-22-091336_add_split_payments_in_payment_intent
+migration_runner-1  | Running migration 2024-11-24-104438_add_error_category_col_to_gsm
+migration_runner-1  | Running migration 2024-11-28-103344_add_split_refunds
+migration_runner-1  | Running migration 2024-12-02-095127_add_new_table_dynamic_routing_stats
+migration_runner-1  | Running migration 2024-12-02-110129_update-user-role-entity-type
+migration_runner-1  | Running migration 2024-12-03-072318_platform_merchant_account
+migration_runner-1  | Running migration 2024-12-04-072648_add_is_click_to_pay_enabled
+migration_runner-1  | Running migration 2024-12-05-115544_add-service-details
+migration_runner-1  | Running migration 2024-12-05-131123_add-email-theme-data-in-themes
+migration_runner-1  | Running migration 2024-12-10-091820_add-clear-pan-possible-to-gsm
+migration_runner-1  | Running migration 2024-12-11-092624_add-email-domain-in-auth-methods
+migration_runner-1  | Running migration 2024-12-11-092649_add-authentication-product-ids-in-business-profile
+migration_runner-1  | Running migration 2024-12-13-080558_entity-id-backfill-for-user-roles
+migration_runner-1  | Running migration 2024-12-16-111228_add_new_col_payment_method_type_in_dynamic_routing_stats
+migration_runner-1  | Running migration 2024-12-17-141811_add_relay_table
+migration_runner-1  | Running migration 2024-12-18-061400_change-roles-index
+migration_runner-1  | Running migration 2024-12-18-124527_add_new_value_in_success_based_routing_conclusive_state
+migration_runner-1  | Running migration 2024-12-24-115958_add-unified-code-and-message-in-refunds
+migration_runner-1  | Running migration 2024-12-28-121104_add_column_tenant_id_to_roles
+migration_runner-1  | Running migration 2025-01-03-084904_add_currencies
+migration_runner-1  | Running migration 2025-01-03-104019_migrate_permission_group_for_recon
+migration_runner-1  | Running migration 2025-01-07-101337_global_sr_connector_dynamic_routing
+migration_runner-1  | Running migration 2025-01-07-105739_create_index_for_relay
+migration_runner-1  | Running migration 2025-01-09-135057_add_processor_transaction_data
+migration_runner-1  | Running migration 2025-01-13-060852_add_card_discovery_in_payment_attempt
+migration_runner-1  | Running migration 2025-01-14-832737_add_charges_to_payment_attempt
+migration_runner-1  | Running migration 2025-01-27-113914_add_card_testing_guard_config_column_to_business_profile
+migration_runner-1  | Running migration 2025-01-30-111507_add_organization_id_in_authentication
+migration_runner-1  | Running migration 2025-02-06-111828_drop_int_id_column_accross_database
+migration_runner-1  | Running migration 2025-02-06-122415_udpate-roles
+migration_runner-1  | Running migration 2025-02-10-101701_recreate_varchar_id_column_for_merchant_account
+migration_runner-1  | Running migration 2025-02-11-062329_add-product-type-column-merchant-account
+migration_runner-1  | Running migration 2025-02-18-091645_add_api_version_for_process_tracker
+migration_runner-1  | Running migration 2025-02-19-072457_add_is_overall_delivery_successful_column_in_events_table
+migration_runner-1  | Running migration 2025-02-27-171444_add-clear-pan-retries-enabled-to-profile
+migration_runner-1  | Running migration 2025-03-04-053541_add_api_version_to_organization
+migration_runner-1  | Running migration 2025-03-04-105454_add_force_3ds_challenge_column_to_business_profile
+migration_runner-1  | Running migration 2025-03-10-060950_add_issuer_code_and_message_in_payment_attempt
+migration_runner-1  | Running migration 2025-03-10-103959_add_is_debit_routing_enabled_to_profile
+migration_runner-1  | Running migration 2025-03-11-171330_add-force-3ds-challenge-in-payment-intent
+migration_runner-1  | Running migration 2025-03-20-085151_force-3ds-challenge-triggered
+migration_runner-1  | Running migration 2025-03-21-091838_add_new_col_processor_mid_and_created_by
+migration_runner-1  | Running migration 2025-03-21-113624_add-recon-status-enum-variant-dashboard-metadata
+migration_runner-1  | Running migration 2025-03-21-134323_add_merchant_business_country_in_business_profile
+migration_runner-1  | Running migration 2025-03-25-090203_add_id_column_to_profile_mca
+migration_runner-1  | Running migration 2025-04-07-133030_add_feature_data_column_to_gsm
+migration_runner-1  | Running migration 2025-04-09-074315_add_setup_future_usage_to_payment_attempt
+migration_runner-1  | Running migration 2025-04-10-095823_add_platform_context_in_organization
+migration_runner-1  | Running migration 2025-04-29-144409_add_lineage_context_to_users
+migration_runner-1  | Running migration 2025-05-05-104001_is_iframe_redirection_enabled_to_business_profile
+migration_runner-1  | Running migration 2025-05-06-121325_is_iframe_redirection_enabled_to_payment_intent
+migration_runner-1  | Running migration 2025-05-08-062918_add-vault-processor-in-connector-type
+migration_runner-1  | Running migration 2025-05-08-102850_add_de_euclid_id_in_routing_algorithm_table
+migration_runner-1  | Running migration 2025-05-16-064616_add_is_pre_network_tokenization_enabled_in_business_profile
+migration_runner-1  | Running migration 2025-05-19-130655_authentication_table_refactor
+migration_runner-1  | Running migration 2025-05-21-134155_add_three_ds_decision_rule_algorithm_to_business_profile
+migration_runner-1  | Running migration 2025-05-21-194538_modify_attemptstatus_and_intentstatus
+migration_runner-1  | Running migration 2025-05-22-191239_add-three-ds-decision-rule-to-algorithm-kind
+migration_runner-1  | Running migration 2025-05-24-205102_add-three-ds-authentication-to-transaction-type
+migration_runner-1  | Running migration 2025-05-25-185220_add-merchant_return_url-column-to-payment_intent
+migration_runner-1  | Running migration 2025-06-05-122346_add-acquirer-config-in-business-profile
+migration_runner-1  | Running migration 2025-06-09-080126_add_merchant_category_code_in_business_profile
+migration_runner-1  | Running migration 2025-06-19-124558_add_routing_approach_to_attempt
+migration_runner-1  | Running migration 2025-06-19-170656_alter_payout_primary_key
+migration_runner-1  | Running migration 2025-06-24-172453_add_new_fields_to_authentication_table
+migration_runner-1  | Running migration 2025-06-27-120507_update_routing_approach
+migration_runner-1  | Running migration 2025-07-01-073253_add_connector_request_reference_id_and_is_payment_id_from_merchant
+migration_runner-1  | Running migration 2025-07-02-071146_add-merchant-country-code-in-business-profile
+migration_runner-1  | Running migration 2025-07-14-add_dispute_polling_interval_to_business_profile
+migration_runner-1  | Running migration 2025-07-21-120614_add_table_for_hyperswitch_ai_interactions
+migration_runner-1  | Running migration 2025-07-24-081357_customer_user_agent_extended
+migration_runner-1  | Running migration 2025-07-24-214849_add_expired_to_intent_and_attempt_status_and_event
+migration_runner-1  | Running migration 2025-07-25-115018_add_authn_fields_challenge_code_cancel_reason_message_extension
+migration_runner-1  | Running migration 2025-07-28-762893_add_payment_channel_to_payment_intent
+migration_runner-1  | Running migration 2025-07-31-181024_add_l2_l3_fields_to_payment_intent
+migration_runner-1  | Running migration 2025-07-31-193521_add_tax_registration_id_to_customer
+migration_runner-1  | Running migration 2025-08-01-050109_add_origin_zip_to_address
+migration_runner-1  | Running migration 2025-08-02-080018_add_partial_authorization_to_payment_intent
+migration_runner-1  | Running migration 2025-08-02-084127_add_partial_auth_enum_variants
+migration_runner-1  | Running migration 2025-08-04-143048_add-VoidedPostCharge
+migration_runner-1  | Running migration 2025-08-20-095434_add_ntid_in_attempt_table
+migration_runner-1  | Running migration 2025-08-21-110802_add_subcription_table
+migration_runner-1  | Running migration 2025-09-03-115802_add-is_manual_retry_enabled-to-business_profile
+migration_runner-1  | Running migration 2025-09-04-063109_update_subscription_table_with_profile_id
+migration_runner-1  | Running migration 2025-09-08-832974_overcapture_flags_to_payment_intent_attempt_and_profile
+migration_runner-1  | Running migration 2025-09-09-171443_add_network_details_in_attempt_table
+migration_runner-1  | Running migration 2025-09-10-101514_add_invoice_table
+migration_runner-1  | Running migration 2025-09-15-065211_add-challenge-request-key-in-authentication
+migration_runner-1  | Running migration 2025-09-17-165505_update_subscription_table_with_merchant_ref_id
+migration_runner-1  | Running migration 2025-09-18-063125_add_billing_processor_id_to_business_profile
+migration_runner-1  | Running migration 2025-09-20-190742_add_external_vault_source_in_payment_method_and_is_external_vault_enabled_in_profile
+migration_runner-1  | Running migration 2025-09-22-084821_add_stored_credentials_payment_intent
+migration_runner-1  | Running migration 2025-09-23-112547_add_billing_processor_in_connector_type
+migration_runner-1  | Running migration 2025-09-25-075008_add_mit_category_in_payment_intnet
+migration_runner-1  | Running migration 2025-09-29-074746_add_authorized_amount_to_payment_attempt
+migration_runner-1  | Running migration 2025-10-06-093228_add_l2_l3_to_business_profile
+migration_runner-1  | Running migration 2025-10-06-111411_deprecated_roles_backfill
+migration_runner-1  | Running migration 2025-10-07-100547-0000_add_bank_redirect_in
+migration_runner-1  | Running migration 2025-10-07-130304_add_connector_invoice_id
+migration_runner-1  | Running migration 2025-10-07-160015_add-plan-id-and-price-id-to-subscription
+migration_runner-1  | Running migration 2025-10-09-171834_invoice_subscription_id_connector_invoice_id_unique_index
+migration_runner-1  | Running migration 2025-10-10-101024-0000_add_payout_connector_metadata_in_payout_attempt_table
+migration_runner-1  | Running migration 2025-10-15-112824_add_invoice_paid_event_type
+migration_runner-1  | Running migration 2025-10-16-121924_add_clf_currency
+migration_runner-1  | Running migration 2025-10-21-075817_add-organization_id-to-payouts-table
+migration_runner-1  | Running migration 2025-10-22-094643_drop_duplicate_index_from_invoice_table
+migration_runner-1  | Running migration 2025-10-23-085511_add_extended_authorization_last_applied_at
+migration_runner-1  | Running migration 2025-10-24-082437_add-customer-details-to-authentication
+migration_runner-1  | Running migration 2025-10-31-090928_add_billing_descriptor_in_payment_intent
+migration_runner-1  | Running migration 2025-11-11-111301_add_tracking_fields_to_customers
+migration_runner-1  | Running migration 2025-11-11-143207_backfill_org_id_in_payouts_table
+migration_runner-1  | Running migration 2025-11-12-043628_add_tokenization_payment_intent
+migration_runner-1  | Running migration 2025-11-12-075136_add_tokenization_field_in_payment_attempt
+migration_runner-1  | Running migration 2025-11-12-135015_add_tracking_fields_to_payment_methods
+migration_runner-1  | Running migration 2025-11-13-124122_add_partner_merchant_identifier_details_in_payment_intent
+migration_runner-1  | Running migration 2025-11-25-131915_add-enc-payment-method-data-in-attempt
+migration_runner-1  | Running migration 2025-11-26-112831_add-authentication-analytics-related-fields-in-authentication-table
+migration_runner-1  | Running migration 2025-12-01-113559_add_application_source_to_process_tracker
+migration_runner-1  | Running migration 2025-12-01-162256_add_partially_captured_and_processing_to_intent_status
+migration_runner-1  | Running migration 2025-12-03-122636_add_state_to_payment_intent
+migration_runner-1  | Running migration 2025-12-09-091856-0000_add_version_to_themes_table
+migration_runner-1  | Running migration 2025-12-10-114754_add_standardised_fields_to_gsm
+migration_runner-1  | Running migration 2025-12-12-120000_add_error_details_to_payment_attempt
+migration_runner-1  | Running migration 2025-12-15-101025-0000_add_document_number_in_customer_table
+migration_runner-1  | Running migration 2025-12-16-101412-0000_add_payment_method_customer_details_to_payment_methods_table
+migration_runner-1  | Running migration 2025-12-30-132554_add_merchant_connector_webhook_configuration_to_mca
+migration_runner-1  | Running migration 2026-01-21-160945_add_capture_to_relay_type
+migration_runner-1  | Running migration 2026-01-22-210101_add_index_processor_merchant_id_payment_id_for_payment_intent
+migration_runner-1  | Running migration 2026-01-22-210111_add_index_processor_merchant_id_payment_id_for_payment_attempt
+migration_runner-1  | Running migration 2026-01-29-100000_add_retry_type_to_payment_attempt
+migration_runner-1  | Running migration 2026-02-02-132938_add_incremental_auth_to_relay_type
+migration_runner-1  | Running migration 2026-02-03-102253_add_column_processor_merchant_id_in_incremetal_authorization
+migration_runner-1  | Running migration 2026-02-03-113754_add_index_processor_merchant_id_authorization_id_for_incremental_authorization
+migration_runner-1  | Running migration 2026-02-04-074421-0000_add_locker_fingerprint_id_to_payment_methods
+migration_runner-1  | Running migration 2026-02-04-131406_add_void_to_relay_type
+migration_runner-1  | Running migration 2026-02-11-120200_add_soft_delete_to_users
+migration_runner-1  | Running migration 2026-02-18-000000_add_installment_options_to_payment_intent
+migration_runner-1  | Running migration 2026-02-22-130934_add_col_processor_merchant_id_and_created_by_for_refund
+migration_runner-1  | Running migration 2026-02-22-130936_add_col_processor_merchant_id_and_created_by_for_dispute
+migration_runner-1  | Running migration 2026-02-24-000001_add_installment_data_to_payment_attempt
+migration_runner-1  | Running migration 2026-02-28-111500_add_saved_views_to_dashboard_metadata
+migration_runner-1  | Running migration 2026-03-10-000001_add_processor_merchant_id_created_by_to_payouts_and_payout_attempt
+migration_runner-1  | Running migration 2026-03-10-000002_add_processor_merchant_id_created_by_to_authentication
+migration_runner-1  | Running migration 2026-03-11-095341_add_network_tokenization_creds_to_domain_tables
+migration_runner-1  | Running migration 2026-03-12-111614_add_network_token_data_in_payment_methods
+migration_runner-1  | Running migration 2026-03-15-091519_add_payment_method_blocking_to_business_profile
+migration_runner-1  | Running migration 2026-03-18-000001_create_card_issuers_table
+migration_runner-1  | Running migration 2026-03-22-000000_add_default_fallback_routing_to_business_profile
+migration_runner-1  | Running migration 2026-03-24-000001_add_processor_merchant_id_to_fraud_check
+migration_runner-1  | Running migration 2026-03-28-142607_add_processor_merchant_id_to_events
+migration_runner-1  | Running migration 2026-03-31-123119_add_index_processor_merchant_id_refund_id_for_refund
+migration_runner-1  | Running migration 2026-04-02-000001_add_id_column_to_customers
+migration_runner-1  | Running migration 2026-04-02-000002_backfill_id_for_v1_customers
+migration_runner-1  | Running migration 2026-04-07-114347_add-profile-acquirer-id-to-payment-intent
+migration_runner-1  | Running migration 2026-04-09-103802_add_initiator_merchant_id_to_events
+migration_runner-1  | Running migration 2026-04-10-102041_add_index_processor_merchant_id_dispute_id_for_dispute
+migration_runner-1  | Running migration 2026-04-10-102115_add_index_processor_merchant_id_payment_id_connector_dispute_id_for_dispute
+migration_runner-1  | Running migration 2026-04-13-000001_add_merchant_product_type_to_roles
+migration_runner-1  | Running migration 2026-04-13-075818_add_processor_merchant_id_created_by_to_file_metadata
+migration_runner-1  | Running migration 2026-04-16-000001_remove_legacy_recon_permission_groups
+migration_runner-1  | Running migration 2026-04-16-135945_add_processor_merchant_id_created_by_to_payment_link
+migration_runner-1  | Running migration 2026-04-22-045614_add_id_column_to_v1_payment_methods
+migration_runner-1  | Running migration 2026-04-24-153740_add_surcharge_connector_id_to_business_profile
+migration_runner-1  | Running migration 2026-04-24-153741_add_external_surcharge_details_to_payment_attempt
+migration_runner-1  | Running migration 2026-04-29-164230_add_source_bank_data_token_to_payout_attempt
+migration_runner-1  | Running migration 2026-05-01-145200_create_batch_blocklist_jobs_table
+migration_runner-1  | Running migration 2026-05-08-112325_add_capture_review_to_attempt_status
+migration_runner-1  | Running migration 2026-05-08-141100_add_review_to_intent_status
+migration_runner-1  | Running migration 2026-05-11-000001_add_tlid_to_payment_attempt_and_payment_methods
+migration_runner-1  | Running migration 2026-05-14-111859_add_sender_payment_instrument_id_payment_attempt
+migration_runner-1  | Running migration 2026-05-18-000001_add_compatibility_updated_at_to_payment_methods
+migration_runner-1  | Running migration 2026-05-18-074548_add_tlid_to_mandate
+[Kmigration_runner-1 exited with code 0
+==> Building Hyperswitch server (first build: ~10 min, cached: ~30 s)...
+   Compiling diesel_models v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/diesel_models)
+   Compiling hyperswitch_domain_models v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/hyperswitch_domain_models)
+   Compiling hyperswitch_interfaces v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/hyperswitch_interfaces)
+   Compiling storage_impl v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/storage_impl)
+   Compiling external_services v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/external_services)
+   Compiling hyperswitch_connectors v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/hyperswitch_connectors)
+   Compiling scheduler v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/scheduler)
+   Compiling analytics v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/analytics)
+   Compiling subscriptions v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/subscriptions)
+   Compiling payment_methods v0.1.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/payment_methods)
+   Compiling router v0.2.0 (/Users/hemanth-maddi/Documents/hyperswitch/crates/router)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 53s
+warning: the following packages contain code that will be rejected by a future version of Rust: buf_redux v0.8.4, grpc-api-types v0.1.0 (https://github.com/juspay/connector-service?tag=2026.05.19.1#975493de), multipart v0.18.0, num-bigint-dig v0.8.4, typemap v0.3.3
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 3`
+==> Starting Hyperswitch server in background...
+==> Waiting for server to be ready on :8080 (check /tmp/hyperswitch-server.log for progress)...
+==> Server is up!
+==> Running BIN routing demo...
+bash scripts/demo_bin_routing.sh
+[0;36m[demo][0m Waiting for Hyperswitch to be ready...
+[0;32m[✓][0m Server is up.
+[0;36m[demo][0m Waiting for Superposition to be ready on http://localhost:8081...
+[0;32m[✓][0m Superposition is up.
+[0;36m[demo][0m Creating merchant account...
+make: *** [demo] Error 1
+exit code: 2

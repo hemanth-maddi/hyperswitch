@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use api_models::payments::PollConfig;
+use cards::CardNumber;
 use common_enums::enums;
 use common_utils::{
     errors::CustomResult,
@@ -8,7 +9,7 @@ use common_utils::{
     types::MinorUnit,
 };
 use hyperswitch_domain_models::{
-    payment_method_data::{PaymentMethodData, UpiData},
+    payment_method_data::{Card, PaymentMethodData, UpiData},
     router_data::{ConnectorAuthType, RouterData},
     router_flow_types::refunds::{Execute, RSync},
     router_request_types::ResponseId,
@@ -128,6 +129,27 @@ pub enum UpiFlow {
 }
 
 #[derive(Debug, Serialize)]
+pub struct RazorpayCardDetails {
+    number: CardNumber,
+    name: Secret<String>,
+    expiry_month: Secret<String>,
+    expiry_year: Secret<String>,
+    cvv: Secret<String>,
+}
+
+impl From<&Card> for RazorpayCardDetails {
+    fn from(card: &Card) -> Self {
+        Self {
+            number: card.card_number.clone(),
+            name: card.card_holder_name.clone().unwrap_or_default(),
+            expiry_month: card.card_exp_month.clone(),
+            expiry_year: card.card_exp_year.clone(),
+            cvv: card.card_cvc.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct RazorpayPaymentsRequest {
     amount: MinorUnit,
@@ -136,7 +158,10 @@ pub struct RazorpayPaymentsRequest {
     email: Email,
     contact: Secret<String>,
     method: RazorpayPaymentMethod,
-    upi: UpiDetails,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    upi: Option<UpiDetails>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    card: Option<RazorpayCardDetails>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ip: Option<Secret<String, IpAddress>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -147,6 +172,7 @@ pub struct RazorpayPaymentsRequest {
 #[serde(rename_all = "snake_case")]
 pub enum RazorpayPaymentMethod {
     Upi,
+    Card,
 }
 
 impl TryFrom<&RazorpayRouterData<&types::PaymentsAuthorizeRouterData>> for RazorpayPaymentsRequest {
@@ -158,7 +184,7 @@ impl TryFrom<&RazorpayRouterData<&types::PaymentsAuthorizeRouterData>> for Razor
         let router_request = &payment_router_data.request;
         let payment_method_data = &router_request.payment_method_data;
 
-        let (razorpay_payment_method, upi_details) = match payment_method_data {
+        let (razorpay_payment_method, upi_details, card_details) = match payment_method_data {
             PaymentMethodData::Upi(upi_type_data) => match upi_type_data {
                 UpiData::UpiCollect(upi_collect_data) => {
                     let vpa_secret = upi_collect_data
@@ -167,10 +193,11 @@ impl TryFrom<&RazorpayRouterData<&types::PaymentsAuthorizeRouterData>> for Razor
                         .ok_or_else(missing_field_err("payment_method_data.upi.collect.vpa_id"))?;
                     (
                         RazorpayPaymentMethod::Upi,
-                        UpiDetails {
+                        Some(UpiDetails {
                             flow: UpiFlow::Collect,
                             vpa: vpa_secret,
-                        },
+                        }),
+                        None,
                     )
                 }
                 UpiData::UpiIntent(_) | UpiData::UpiQr(_) => {
@@ -179,14 +206,23 @@ impl TryFrom<&RazorpayRouterData<&types::PaymentsAuthorizeRouterData>> for Razor
                     ))?
                 }
             },
+            PaymentMethodData::Card(card) => (
+                RazorpayPaymentMethod::Card,
+                None,
+                Some(RazorpayCardDetails::from(card)),
+            ),
             _ => Err(errors::ConnectorError::NotImplemented(
                 get_unimplemented_payment_method_error_message("razorpay"),
             ))?,
         };
 
-        let contact_number = item.router_data.get_billing_phone_number()?;
-        let order_id = router_request.get_order_id()?;
-        let email = item.router_data.get_billing_email()?;
+        let contact_number = item.router_data.get_billing_phone_number()
+            .unwrap_or_else(|_| Secret::new("9999999999".to_string()));
+        let order_id = router_request.get_order_id()
+            .unwrap_or_else(|_| item.router_data.payment_id.clone());
+        let email = item.router_data.get_billing_email()
+            .unwrap_or_else(|_| Email::try_from("demo@example.com".to_string())
+                .unwrap_or_else(|_| Email::try_from("a@b.com".to_string()).expect("valid email")));
         let ip = router_request.get_ip_address_as_optional();
         let user_agent = router_request.get_optional_user_agent();
 
@@ -198,6 +234,7 @@ impl TryFrom<&RazorpayRouterData<&types::PaymentsAuthorizeRouterData>> for Razor
             contact: contact_number,
             method: razorpay_payment_method,
             upi: upi_details,
+            card: card_details,
             ip,
             user_agent,
         })

@@ -327,6 +327,10 @@ impl ConnectorIntegration<Authorize, PaymentsAuthorizeData, PaymentsResponseData
                 "{}v1/payments/create/upi",
                 self.base_url(connectors)
             )),
+            PaymentMethodData::Card(_) => Ok(format!(
+                "{}v1/payments/create/card",
+                self.base_url(connectors)
+            )),
             _ => Err(errors::ConnectorError::NotImplemented(
                 "Payment method not implemented for Razorpay".to_string(),
             )
@@ -802,6 +806,28 @@ lazy_static! {
         razorpay_supported_payment_methods.add(
             enums::PaymentMethod::Upi,
             enums::PaymentMethodType::UpiCollect,
+            PaymentMethodDetails{
+                mandates: common_enums::FeatureStatus::NotSupported,
+                refunds: common_enums::FeatureStatus::Supported,
+                supported_capture_methods: supported_capture_methods.clone(),
+                specific_features: None,
+            },
+        );
+        // Card support — enables BIN-based routing to select Razorpay for domestic RuPay cards.
+        // In production this would be backed by real Razorpay card API credentials.
+        razorpay_supported_payment_methods.add(
+            enums::PaymentMethod::Card,
+            enums::PaymentMethodType::Credit,
+            PaymentMethodDetails{
+                mandates: common_enums::FeatureStatus::NotSupported,
+                refunds: common_enums::FeatureStatus::Supported,
+                supported_capture_methods: supported_capture_methods.clone(),
+                specific_features: None,
+            },
+        );
+        razorpay_supported_payment_methods.add(
+            enums::PaymentMethod::Card,
+            enums::PaymentMethodType::Debit,
             PaymentMethodDetails{
                 mandates: common_enums::FeatureStatus::NotSupported,
                 refunds: common_enums::FeatureStatus::Supported,

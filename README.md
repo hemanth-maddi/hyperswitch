@@ -5,6 +5,105 @@
 
 <h1 align="center">Composable Open-Source Payments Infrastructure</h1>
 
+---
+
+## BIN-Based Routing (Techdome Assignment)
+
+This fork adds **BIN-prefix routing** — a new `bin_based` routing algorithm that routes card payments to different connectors based on the card's BIN prefix.
+
+**Use case:** Route Indian RuPay cards (BIN prefixes `508`, `606`, `652`, `817`, …) to a domestic acquirer (Razorpay), and all other cards to a global processor (Stripe).
+
+**Design summary:** see [DECISIONS.md](./DECISIONS.md)
+
+### Demo (< 10 minutes from `git clone`)
+
+**Prerequisites:**
+- Docker + Docker Compose v2 (for Postgres and Redis only — no server build in Docker)
+- Rust toolchain (`rustup` — same version as `.rust-version` in the repo)
+- `libpq`: `brew install libpq` (macOS)
+- `curl`, `bash`
+
+```bash
+# 1. Clone and enter the repo
+git clone <your-fork-url>
+cd hyperswitch
+
+# 2. Start everything and run the demo
+make demo
+```
+
+`make demo` does five things in order:
+1. Tears down any previous containers (idempotent — safe to re-run)
+2. Starts Postgres + Redis in Docker (fast, just image pulls)
+3. Runs DB migrations via a temporary container
+4. Builds and starts the Hyperswitch server **natively** with `cargo run` (avoids OOM inside Docker during Rust compilation)
+5. Runs `scripts/demo_bin_routing.sh` — creates a merchant, registers the BIN routing algorithm, fires test payments
+
+> **First-run note:** `cargo build` takes ~10–15 min on a cold cache. Subsequent runs use the incremental build cache and take ~30 s.
+>
+> **Superposition not required:** The demo compose omits the Superposition service. The server falls back to `config/superposition_seed.toml` automatically.
+
+**Watch the routing decisions live:**
+
+```bash
+docker compose -f docker-compose-demo.yml logs -f hyperswitch-server | grep bin_routing
+```
+
+You will see structured log lines for every payment:
+
+```
+bin_routing_decision="rule_matched"  card_bin="508930" rule_label="rupay_domestic" chosen_connector="razorpay"
+bin_routing_decision="no_match_fallback" card_bin="411111" fallback_connector="stripe"
+```
+
+### Run unit tests (no server required)
+
+```bash
+# Ensure libpq is on the linker path (macOS with Homebrew):
+export PQ_LIB_DIR=/opt/homebrew/opt/libpq/lib
+make test-bin-routing
+```
+
+Expected output:
+```
+test bin_routing_tests::test_rupay_bin_routes_to_domestic ... ok
+test bin_routing_tests::test_rupay_652_routes_to_domestic ... ok
+test bin_routing_tests::test_international_bin_uses_fallback ... ok
+test bin_routing_tests::test_no_bin_uses_fallback ... ok
+test bin_routing_tests::test_empty_rules_always_fallbacks ... ok
+test bin_routing_tests::test_longest_prefix_wins ... ok
+```
+
+### BIN Routing API
+
+Configure via the standard routing API — no schema changes needed:
+
+```bash
+curl -X POST http://localhost:8080/routing \
+  -H "Content-Type: application/json" \
+  -H "api-key: <your-api-key>" \
+  -d '{
+    "name": "RuPay Domestic Routing",
+    "algorithm": {
+      "type": "bin_based",
+      "data": {
+        "rules": [
+          {"prefix": "508", "label": "rupay", "connectors": [{"connector": "razorpay"}]},
+          {"prefix": "606", "label": "rupay", "connectors": [{"connector": "razorpay"}]},
+          {"prefix": "652", "label": "rupay", "connectors": [{"connector": "razorpay"}]}
+        ],
+        "fallback": [{"connector": "stripe"}]
+      }
+    }
+  }'
+```
+
+**Matching rule:** longest prefix wins. A rule with prefix `5089` takes precedence over `508` for cards starting with `5089`.
+
+**Graceful degradation:** if `fallback` is configured and no rule matches (or the payment method has no card BIN), the fallback connectors are used without error.
+
+---
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/juspay/hyperswitch/main/docs/gifs/quickstart.gif" alt="Quickstart demo" />
 </p>

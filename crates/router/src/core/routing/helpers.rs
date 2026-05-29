@@ -569,6 +569,17 @@ pub async fn validate_connectors_in_routing_config(
             Err(errors::ApiErrorResponse::InternalServerError)
                 .attach_printable("Invalid routing algorithm three_ds decision rule received")?
         }
+
+        routing_types::StaticRoutingAlgorithm::BinBased(config) => {
+            for rule in &config.rules {
+                for choice in &rule.connectors {
+                    connector_choice(choice)?;
+                }
+            }
+            for choice in &config.fallback {
+                connector_choice(choice)?;
+            }
+        }
     }
 
     Ok(())

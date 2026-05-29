@@ -1,0 +1,92 @@
+# Demo dependencies for the BIN-based routing assignment.
+# Only Postgres and Redis are run in Docker — no server compilation needed.
+#
+# The Hyperswitch server is started natively by `make demo` using
+# `cargo run`, which uses the already-compiled binary from the host.
+#
+# Usage:  make demo   (handles everything: deps + migrations + server + demo)
+
+volumes:
+  pg_data:
+
+networks:
+  router_net:
+
+services:
+  pg:
+    image: docker.io/postgres:16
+    ports:
+      - "5432:5432"
+    networks:
+      - router_net
+    volumes:
+      - pg_data:/var/lib/postgresql
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=db_pass
+      - POSTGRES_DB=hyperswitch_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+      timeout: 5s
+
+  redis-standalone:
+    image: docker.io/redis:7
+    networks:
+      - router_net
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep '^PONG$'"]
+      interval: 5s
+      retries: 3
+      start_period: 5s
+      timeout: 5s
+
+  # Superposition stores dynamic config (fingerprint_secret etc.) used by the server.
+  # Seeding (superposition-init) is skipped — the server writes its own keys on first use.
+  superposition:
+    image: ghcr.io/juspay/superposition-demo:0.102.0
+    ports:
+      - "8081:8080"
+    networks:
+      - router_net
+    restart: unless-stopped
+    environment:
+      - API_HOSTNAME=http://localhost:8081
+      - REDIS_URL=redis://redis-standalone:6379
+    depends_on:
+      redis-standalone:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+      timeout: 5s
+
+  # Runs diesel migrations against the Postgres container.
+  migration_runner:
+    image: docker.io/debian:trixie-slim
+    pull_policy: always
+    command: >
+      bash -c "
+      apt-get update && apt-get install -y curl xz-utils &&
+      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/diesel-rs/diesel/releases/download/v2.3.5/diesel_cli-installer.sh | bash &&
+      if ! command -v just >/dev/null 2>&1; then
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+      fi &&
+      export PATH=\"$${PATH}:$${HOME}/.cargo/bin\" &&
+      just migrate"
+    working_dir: /app
+    networks:
+      - router_net
+    volumes:
+      - ./:/app
+    environment:
+      - DATABASE_URL=postgresql://db_user:db_pass@pg:5432/hyperswitch_db
+    depends_on:
+      pg:
+        condition: service_healthy

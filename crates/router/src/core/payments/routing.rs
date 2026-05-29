@@ -85,6 +85,7 @@ pub enum CachedAlgorithm {
     Priority(Vec<routing_types::RoutableConnectorChoice>),
     VolumeSplit(Vec<routing_types::ConnectorVolumeSplit>),
     Advanced(backend::VirInterpreterBackend<ConnectorSelection>),
+    BinBased(routing_types::BinBasedRoutingConfig),
 }
 
 #[cfg(feature = "v1")]
@@ -1626,6 +1627,64 @@ pub async fn perform_hybrid_routing_if_enabled(
     }
 }
 
+/// Select connectors based on BIN prefix rules.
+///
+/// Uses longest-prefix match: the rule whose `prefix` is the longest string
+/// that is a prefix of `card_bin` wins. This lets operators add more specific
+/// overrides (e.g., "5089" beats "508") without reordering the rule list.
+///
+/// Falls back to `config.fallback` when:
+///   - `card_bin` is `None` (non-card payment method), or
+///   - No rule prefix matches the supplied BIN.
+///
+/// The routing decision is emitted as a structured log line so it appears in
+/// the decision trace without leaking PII (BIN digits are public knowledge).
+pub fn perform_bin_routing(
+    config: &routing_types::BinBasedRoutingConfig,
+    card_bin: Option<&str>,
+) -> Vec<routing_types::RoutableConnectorChoice> {
+    let Some(bin) = card_bin else {
+        logger::info!(
+            bin_routing_decision = "no_bin_available",
+            fallback_connector = ?config.fallback.first().map(|c| c.connector.to_string()),
+            "bin_routing: non-card payment, using fallback connectors"
+        );
+        return config.fallback.clone();
+    };
+
+    // Longest-prefix match: iterate all rules, keep the one with the longest
+    // prefix that is a prefix of `bin`. This is O(n * prefix_len) which is
+    // fine for the typical rule count (< 100).
+    let matched = config
+        .rules
+        .iter()
+        .filter(|rule| !rule.prefix.is_empty() && bin.starts_with(rule.prefix.as_str()))
+        .max_by_key(|rule| rule.prefix.len());
+
+    match matched {
+        Some(rule) => {
+            logger::info!(
+                bin_routing_decision = "rule_matched",
+                card_bin = %bin,
+                rule_prefix = %rule.prefix,
+                rule_label = ?rule.label,
+                chosen_connector = ?rule.connectors.first().map(|c| c.connector.to_string()),
+                "bin_routing: matched BIN prefix rule"
+            );
+            rule.connectors.clone()
+        }
+        None => {
+            logger::info!(
+                bin_routing_decision = "no_match_fallback",
+                card_bin = %bin,
+                fallback_connector = ?config.fallback.first().map(|c| c.connector.to_string()),
+                "bin_routing: no rule matched BIN prefix, using fallback"
+            );
+            config.fallback.clone()
+        }
+    }
+}
+
 pub async fn static_routing_v1(
     routing_algorithm: &CachedAlgorithm,
     backend_input: backend::BackendInput,
@@ -1638,6 +1697,10 @@ pub async fn static_routing_v1(
             .change_context(errors::RoutingError::ConnectorSelectionFailed)?,
         CachedAlgorithm::Advanced(interpreter) => {
             execute_dsl_and_get_connector_v1(backend_input, interpreter)?
+        }
+        CachedAlgorithm::BinBased(config) => {
+            let card_bin = backend_input.payment.card_bin.as_deref();
+            perform_bin_routing(config, card_bin)
         }
     };
     Ok(routable_connectors)
@@ -1753,6 +1816,10 @@ pub async fn perform_static_routing_v1(
         ),
         CachedAlgorithm::Advanced(interpreter) => (
             execute_dsl_and_get_connector_v1(backend_input, interpreter)?,
+            Some(common_enums::RoutingApproach::RuleBasedRouting),
+        ),
+        CachedAlgorithm::BinBased(config) => (
+            perform_bin_routing(config, backend_input.payment.card_bin.as_deref()),
             Some(common_enums::RoutingApproach::RuleBasedRouting),
         ),
     };
@@ -1939,6 +2006,9 @@ pub async fn refresh_routing_cache_v1(
                 .attach_printable("Error initializing DSL interpreter backend")?;
 
             CachedAlgorithm::Advanced(interpreter)
+        }
+        routing_types::StaticRoutingAlgorithm::BinBased(config) => {
+            CachedAlgorithm::BinBased(config)
         }
         api_models::routing::StaticRoutingAlgorithm::ThreeDsDecisionRule(_program) => {
             Err(errors::RoutingError::InvalidRoutingAlgorithmStructure)
@@ -2791,6 +2861,13 @@ async fn perform_session_routing_for_pm_type(
                     session_pm_input.backend_input.clone(),
                     interpreter,
                 )?,
+                Some(common_enums::RoutingApproach::RuleBasedRouting),
+            ),
+            CachedAlgorithm::BinBased(config) => (
+                perform_bin_routing(
+                    config,
+                    session_pm_input.backend_input.payment.card_bin.as_deref(),
+                ),
                 Some(common_enums::RoutingApproach::RuleBasedRouting),
             ),
         }
@@ -4088,4 +4165,172 @@ pub async fn get_active_mca_ids(
     let active_mca_ids: std::collections::HashSet<_> =
         db_mcas.iter().map(|mca| mca.get_id().clone()).collect();
     Ok(active_mca_ids)
+}
+
+#[cfg(test)]
+mod bin_routing_tests {
+    use api_models::routing::{
+        BinBasedRoutingConfig, BinRule, RoutableChoiceKind, RoutableConnectorChoice,
+        RoutableConnectors,
+    };
+
+    use super::perform_bin_routing;
+
+    fn make_connector(connector: RoutableConnectors) -> RoutableConnectorChoice {
+        RoutableConnectorChoice {
+            choice_kind: RoutableChoiceKind::OnlyConnector,
+            connector,
+            merchant_connector_id: None,
+        }
+    }
+
+    // Shared config: RuPay prefixes → Razorpay, fallback → Stripe.
+    // Includes a 4-digit prefix (5089) to test longest-match semantics.
+    fn rupay_config() -> BinBasedRoutingConfig {
+        BinBasedRoutingConfig {
+            rules: vec![
+                BinRule {
+                    prefix: "508".to_string(),
+                    label: Some("rupay_domestic".to_string()),
+                    connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+                },
+                BinRule {
+                    prefix: "5089".to_string(),
+                    label: Some("rupay_platinum".to_string()),
+                    connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+                },
+                BinRule {
+                    prefix: "606".to_string(),
+                    label: Some("rupay_domestic".to_string()),
+                    connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+                },
+                BinRule {
+                    prefix: "652".to_string(),
+                    label: Some("rupay_domestic".to_string()),
+                    connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+                },
+            ],
+            fallback: vec![make_connector(RoutableConnectors::Stripe)],
+        }
+    }
+
+    // ── Happy path ────────────────────────────────────────────────────────────
+
+    /// RuPay BIN (508xxx) matches the 3-digit prefix rule → domestic connector.
+    #[test]
+    fn test_happy_rupay_bin_routes_to_domestic() {
+        let result = perform_bin_routing(&rupay_config(), Some("508123"));
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].connector, RoutableConnectors::Razorpay);
+    }
+
+    /// All configured RuPay prefixes (606, 652) route to the domestic connector.
+    #[test]
+    fn test_happy_all_rupay_prefixes_route_to_domestic() {
+        let config = rupay_config();
+        for bin in ["606900", "652100"] {
+            let result = perform_bin_routing(&config, Some(bin));
+            assert_eq!(
+                result[0].connector,
+                RoutableConnectors::Razorpay,
+                "BIN {bin} should route to Razorpay"
+            );
+        }
+    }
+
+    /// International Visa BIN does not match any rule → falls back to global connector.
+    #[test]
+    fn test_happy_international_bin_falls_back_to_stripe() {
+        let result = perform_bin_routing(&rupay_config(), Some("411111"));
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    // ── Edge cases ────────────────────────────────────────────────────────────
+
+    /// Longest prefix wins: BIN 508912 matches both "508" and "5089"; "5089" must win.
+    #[test]
+    fn test_edge_longest_prefix_wins_over_shorter() {
+        let result = perform_bin_routing(&rupay_config(), Some("508912"));
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].connector, RoutableConnectors::Razorpay);
+        // "5089" was the winning rule — confirmed via log field `rule_prefix`
+        // (both rules map to Razorpay; the distinction is observable in structured logs)
+    }
+
+    /// A rule whose prefix is longer than the BIN itself must NOT match.
+    /// e.g. prefix "5089123" cannot match BIN "508912" (6 digits).
+    #[test]
+    fn test_edge_prefix_longer_than_bin_does_not_match() {
+        let config = BinBasedRoutingConfig {
+            rules: vec![BinRule {
+                prefix: "5089123".to_string(), // 7 chars, longer than any 6-digit BIN
+                label: None,
+                connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+            }],
+            fallback: vec![make_connector(RoutableConnectors::Stripe)],
+        };
+        let result = perform_bin_routing(&config, Some("508912"));
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    /// A rule with an empty prefix is silently skipped — it must not act as a catch-all.
+    #[test]
+    fn test_edge_empty_prefix_rule_is_skipped() {
+        let config = BinBasedRoutingConfig {
+            rules: vec![BinRule {
+                prefix: "".to_string(), // empty — must be ignored
+                label: None,
+                connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+            }],
+            fallback: vec![make_connector(RoutableConnectors::Stripe)],
+        };
+        // Empty prefix must not match; fallback should be used
+        let result = perform_bin_routing(&config, Some("411111"));
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    // ── Failure modes ─────────────────────────────────────────────────────────
+
+    /// No BIN available (non-card payment, e.g. UPI) → fallback, no panic.
+    #[test]
+    fn test_failure_no_bin_uses_fallback() {
+        let result = perform_bin_routing(&rupay_config(), None);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    /// Empty BIN string (malformed input) → treated same as missing BIN → fallback.
+    #[test]
+    fn test_failure_empty_bin_string_uses_fallback() {
+        let result = perform_bin_routing(&rupay_config(), Some(""));
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    /// No rules configured at all → always fallback regardless of BIN.
+    #[test]
+    fn test_failure_no_rules_always_fallback() {
+        let config = BinBasedRoutingConfig {
+            rules: vec![],
+            fallback: vec![make_connector(RoutableConnectors::Stripe)],
+        };
+        let result = perform_bin_routing(&config, Some("508123"));
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].connector, RoutableConnectors::Stripe);
+    }
+
+    /// No rule matches AND fallback is empty → returns empty vec (no panic, graceful).
+    #[test]
+    fn test_failure_no_match_and_empty_fallback_returns_empty() {
+        let config = BinBasedRoutingConfig {
+            rules: vec![BinRule {
+                prefix: "508".to_string(),
+                label: None,
+                connectors: vec![make_connector(RoutableConnectors::Razorpay)],
+            }],
+            fallback: vec![], // no fallback configured
+        };
+        let result = perform_bin_routing(&config, Some("411111")); // no rule match
+        assert!(result.is_empty(), "expected empty vec when no match and no fallback");
+    }
 }

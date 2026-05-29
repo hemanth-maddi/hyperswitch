@@ -433,6 +433,14 @@ pub async fn create_routing_algorithm_under_profile(
                 );
                 None
             }
+            // BinBased routing is evaluated natively by Hyperswitch and has no
+            // representation in the decision engine's algorithm format.
+            EuclidAlgorithm::BinBased(_) => {
+                router_env::logger::info!(
+                    "decision_engine_euclid: BinBased routing is not forwarded to decision engine"
+                );
+                None
+            }
         };
 
         if let Some(static_algorithm) = maybe_static_algorithm {
@@ -2657,6 +2665,13 @@ pub async fn migrate_rules_for_profile(
                     "Skipping 3DS rule migration (not supported yet)"
                 );
                 push_error(algorithm_id.clone(), "3DS migration not implemented".into());
+                None
+            }
+            Ok(EuclidAlgorithm::BinBased(_)) => {
+                router_env::logger::info!(
+                    ?algorithm_id,
+                    "Skipping BinBased algorithm (not applicable to decision engine)"
+                );
                 None
             }
             Err(e) => {

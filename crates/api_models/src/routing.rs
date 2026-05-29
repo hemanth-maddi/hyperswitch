@@ -579,6 +579,7 @@ pub enum RoutingAlgorithmKind {
     Advanced,
     Dynamic,
     ThreeDsDecisionRule,
+    BinBased,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -601,6 +602,32 @@ pub enum DynamicRoutingAlgorithm {
     ContractBasedAlgorithm(ContractBasedRoutingConfig),
 }
 
+/// A single BIN prefix rule: cards whose 6-digit BIN starts with `prefix`
+/// are routed to `connectors` (in priority order). Longest prefix wins when
+/// multiple rules match the same BIN.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ToSchema, PartialEq)]
+pub struct BinRule {
+    /// BIN prefix to match (3–8 digits). Longer prefixes take precedence.
+    pub prefix: String,
+    /// Human-readable label emitted in structured routing logs (no PII).
+    pub label: Option<String>,
+    /// Connectors to use for this BIN range, in descending priority order.
+    pub connectors: Vec<RoutableConnectorChoice>,
+}
+
+/// Configuration for BIN-prefix-based connector routing.
+///
+/// Routing decision: extract the 6-digit BIN, find the rule with the longest
+/// matching prefix → use its connectors. Falls back to `fallback` when no
+/// rule matches or the payment method has no card BIN.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ToSchema)]
+pub struct BinBasedRoutingConfig {
+    /// Ordered list of BIN prefix rules.
+    pub rules: Vec<BinRule>,
+    /// Connectors to use when no rule matches or no BIN is available.
+    pub fallback: Vec<RoutableConnectorChoice>,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ToSchema)]
 #[serde(
     tag = "type",
@@ -616,6 +643,7 @@ pub enum StaticRoutingAlgorithm {
     Advanced(Program<ConnectorSelection>),
     #[schema(value_type=ProgramThreeDsDecisionRule)]
     ThreeDsDecisionRule(Program<ThreeDSDecisionRule>),
+    BinBased(BinBasedRoutingConfig),
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -640,7 +668,11 @@ pub struct RuleThreeDsDecisionRule {
 impl StaticRoutingAlgorithm {
     pub fn should_validate_connectors_in_routing_config(&self) -> bool {
         match self {
-            Self::Single(_) | Self::Priority(_) | Self::VolumeSplit(_) | Self::Advanced(_) => true,
+            Self::Single(_)
+            | Self::Priority(_)
+            | Self::VolumeSplit(_)
+            | Self::Advanced(_)
+            | Self::BinBased(_) => true,
             Self::ThreeDsDecisionRule(_) => false,
         }
     }
@@ -654,6 +686,7 @@ pub enum RoutingAlgorithmSerde {
     VolumeSplit(Vec<ConnectorVolumeSplit>),
     Advanced(Program<ConnectorSelection>),
     ThreeDsDecisionRule(Program<ThreeDSDecisionRule>),
+    BinBased(BinBasedRoutingConfig),
 }
 
 impl TryFrom<RoutingAlgorithmSerde> for StaticRoutingAlgorithm {
@@ -679,6 +712,7 @@ impl TryFrom<RoutingAlgorithmSerde> for StaticRoutingAlgorithm {
             RoutingAlgorithmSerde::VolumeSplit(i) => Self::VolumeSplit(i),
             RoutingAlgorithmSerde::Advanced(i) => Self::Advanced(i),
             RoutingAlgorithmSerde::ThreeDsDecisionRule(i) => Self::ThreeDsDecisionRule(i),
+            RoutingAlgorithmSerde::BinBased(i) => Self::BinBased(i),
         })
     }
 }
@@ -782,6 +816,7 @@ impl StaticRoutingAlgorithm {
             Self::VolumeSplit(_) => RoutingAlgorithmKind::VolumeSplit,
             Self::Advanced(_) => RoutingAlgorithmKind::Advanced,
             Self::ThreeDsDecisionRule(_) => RoutingAlgorithmKind::ThreeDsDecisionRule,
+            Self::BinBased(_) => RoutingAlgorithmKind::BinBased,
         }
     }
 }
